@@ -1,4 +1,5 @@
 uniform vec4 ambience;
+uniform sampler2D curTex;
 
 in vec3 Normal;
 in vec3 FragmentPos;
@@ -20,10 +21,12 @@ vec4 CalcDirLight(DirLight light, vec3 normal, vec4 baseColor)
 
 vec4 color(vec4 graphicsColor, sampler2D image, vec2 uv) 
 {    
+    vec2 myuv = uv;
+    myuv.y = -myuv.y;
     //diffuse
     vec4 result = vec4(0.0, 0.0, 0.0, 1.0);
     vec3 norm = normalize(Normal); // The normal of the fragment will never change.
-    vec4 baseColor = vec4(texture(image, uv)); // We need to know the full value of the pixel
+    vec4 baseColor = vec4(texture(curTex, myuv)); // We need to know the full value of the pixel
     
     DirLight sun;
     sun.direction = vec3(0.0, -1.0, 0.0);//sunDirection;
