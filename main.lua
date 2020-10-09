@@ -24,6 +24,13 @@ loginRequest = {
     }
 }
 
+pong = {
+    message_type = "pong",
+    data = {}
+}
+
+clientId = nil
+
 function lovr.load()
     local defaultVert = lovr.filesystem.read('default.vert');
     local defaultFrag = lovr.filesystem.read('default.frag');
@@ -31,10 +38,6 @@ function lovr.load()
     shader = lovr.graphics.newShader(defaultVert, defaultFrag, 
         { flags = { uniformScale = true } }
     );
-
-    host = enet.host_create()
-    server = host:connect("174.99.126.77:9521")
-    server:send(json.encode(loginRequest))
 
     p_body = lovr.graphics.newModel('p_body.glb')
     p_head = lovr.graphics.newModel('p_head.glb')
@@ -48,6 +51,12 @@ function lovr.load()
     texSwd1:setFilter('nearest')
 
     lovr.headset.setClipDistance(0.1, 100.0);
+
+    host = enet.host_create()
+    server = host:connect("54.196.121.96:33111")
+    --event = host:service()
+    --if event then print(event.data) end 
+    
 end
 
 serverTick = 0.05
@@ -68,16 +77,25 @@ function lovr.update(dT)
     -- CLIENT
     serverTick = serverTick - dT 
     if serverTick < 0 then 
-        serverTick = serverTick + 0.05
-        --local go = loginRequest
-        --server:send(json.encode(go));
-    end
-    if server then 
-        local event = host:service()
-        if event then 
-            print('Event: ' .. event.type)
-            if event.data ~= 0 then 
-                print(event.data)
+        if clientId == nil then serverTick = serverTick + 3.0 end
+        serverTick = serverTick + 0.025
+        if server then
+            if clientId == nil then 
+                server:send(json.encode(loginRequest))    
+            end
+            local event = host:service()
+            if event then 
+                print('Event: ' .. event.type)
+                if event.data ~= 0 then 
+                    print(event.data)
+                    local o = json.decode(event.data)
+                    if o.type == 'login_response' then 
+                        clientId = o.clientId 
+                        serverTick = 0.025
+                    end
+                end
+            else
+                server:send(json.encode(pong))     
             end
         end
     end
