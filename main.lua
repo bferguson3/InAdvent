@@ -4,6 +4,8 @@ local enet = require 'enet'
 local json = require 'json'
 local b64 = require 'base64'
 
+local m = lovr.filesystem.load('lib.lua'); m()
+
 shader = nil;
 camera = nil;
 view = nil;
