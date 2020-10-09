@@ -14,7 +14,15 @@ p = {
 };
 deltaTime = 0.0;
 host = nil
-server = nil 
+server = nil
+
+loginRequest = {
+    message_type = 'login', 
+    data = {
+        player_username = "user",
+        password = "password"
+    }
+}
 
 function lovr.load()
     local defaultVert = lovr.filesystem.read('default.vert');
@@ -25,7 +33,8 @@ function lovr.load()
     );
 
     host = enet.host_create()
-    server = host:connect("127.0.0.1:8888")
+    server = host:connect("174.99.126.77:9521")
+    server:send(json.encode(loginRequest))
 
     p_body = lovr.graphics.newModel('p_body.glb')
     p_head = lovr.graphics.newModel('p_head.glb')
@@ -60,13 +69,16 @@ function lovr.update(dT)
     serverTick = serverTick - dT 
     if serverTick < 0 then 
         serverTick = serverTick + 0.05
-        local go = { HeadX = p.x, HeadY = p.y, HeadZ = p.z }
-        server:send(b64.enc(json.encode(go)));
+        --local go = loginRequest
+        --server:send(json.encode(go));
     end
     if server then 
         local event = host:service()
         if event then 
             print('Event: ' .. event.type)
+            if event.data ~= 0 then 
+                print(event.data)
+            end
         end
     end
 end
