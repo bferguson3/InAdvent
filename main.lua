@@ -29,6 +29,11 @@ pong = {
     data = {}
 }
 
+get_ping = { 
+    message_type = "get_ping",
+    data = {}
+}
+
 clientId = nil
 
 function lovr.load()
@@ -53,14 +58,17 @@ function lovr.load()
     lovr.headset.setClipDistance(0.1, 100.0);
 
     host = enet.host_create()
+    --server = host:connect("54.196.121.96:33111")
     server = host:connect("54.196.121.96:33111")
     --event = host:service()
     --if event then print(event.data) end 
     
 end
 
-serverTick = 0.05
+serverTick = (1/40) -- 25ms, to target 50ms updates
 gameTime = 0.0
+pings = {}
+lastPing = 0
 
 function lovr.update(dT)
     deltaTime = dT;
@@ -78,24 +86,29 @@ function lovr.update(dT)
     serverTick = serverTick - dT 
     if serverTick < 0 then 
         if clientId == nil then serverTick = serverTick + 3.0 end
-        serverTick = serverTick + 0.025
+        serverTick = serverTick + (1/40)
         if server then
             if clientId == nil then 
                 server:send(json.encode(loginRequest))    
             end
             local event = host:service()
             if event then 
-                print('Event: ' .. event.type)
-                if event.data ~= 0 then 
-                    print(event.data)
+                if event.data ~= 0 then     
                     local o = json.decode(event.data)
                     if o.type == 'login_response' then 
                         clientId = o.clientId 
-                        serverTick = 0.025
+                        serverTick = (1/40)
+                        print(event.data)
+                    elseif o.type == 'ping_response' then 
+                        --print(o.value)
+                        local thisPing = o.value - lastPing
+                        table.insert(pings, thisPing)
+                        lastPing = o.value
                     end
                 end
             else
-                server:send(json.encode(pong))     
+                server:send(json.encode(get_ping)) 
+                --host:service()
             end
         end
     end
@@ -125,5 +138,11 @@ function lovr.draw()
 end
 
 function lovr.quit()
-
+    local avg = 0
+    for i=1,#pings do 
+        if pings[i] > 999 then pings[i] = 999 end
+        avg = avg + pings[i]
+    end
+    avg = avg / #pings 
+    print('Average ping: ' .. round(avg, 1))
 end
