@@ -94,12 +94,12 @@ function lovr.update(dT)
     -- CLIENT
     serverTick = serverTick - dT 
     if serverTick < 0 then 
-        if clientId == nil then serverTick = serverTick + 3.0 end
+        --if clientId == nil then serverTick = serverTick + 3.0 end
         serverTick = serverTick + (1/40)
         if server then
-            if clientId == nil then 
-                server:send(json.encode(loginRequest))    
-            end
+            --if clientId == nil then 
+            --    server:send(json.encode(loginRequest))    
+            --end
             local event = host:service()
             if event then 
                 if event.data ~= 0 then     
@@ -110,9 +110,10 @@ function lovr.update(dT)
                         serverTick = (1/40)
                         print(event.data)
                     elseif o.type == 'ping_response' then
-                        local thisPing = o.value - lastPing
+                        local v = o.value
+                        local thisPing = v - lastPing
                         table.insert(pings, thisPing)
-                        lastPing = o.value
+                        lastPing = v
                     end
                 end
             else
