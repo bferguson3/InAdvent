@@ -45,6 +45,41 @@ get_ping = {
     data = {}
 }
 --
+-- CLIENT
+serviceCall = coroutine.create(function()
+    while 1 == 1 do
+        serverTick = serverTick - deltaTime 
+        if serverTick < 0 then 
+            --if clientId == nil then serverTick = serverTick + 3.0 end
+            serverTick = serverTick + (1/40)
+            if server then
+                --if clientId == nil then 
+                --    server:send(json.encode(loginRequest))    
+                --end
+                local event = host:service()
+                if event then 
+                    if event.data ~= 0 then     
+                        --client.process(event)
+                        local o = json.decode(event.data)
+                        if o.type == 'login_response' then 
+                            clientId = o.clientId 
+                            serverTick = (1/40)
+                            print(event.data)
+                        elseif o.type == 'ping_response' then
+                            local v = o.value
+                            local thisPing = v - lastPing
+                            table.insert(pings, thisPing)
+                            lastPing = v
+                        end
+                    end
+                else
+                    server:send(json.encode(get_ping))
+                end
+            end
+        end 
+        coroutine.yield() -- while true...
+    end
+end)-- end service
 
 function lovr.load()
 
@@ -91,36 +126,8 @@ function lovr.update(dT)
              p.z + math.sin(p.rot)))
     view = lovr.math.newMat4(camera):invert()
 
-    -- CLIENT
-    serverTick = serverTick - dT 
-    if serverTick < 0 then 
-        --if clientId == nil then serverTick = serverTick + 3.0 end
-        serverTick = serverTick + (1/40)
-        if server then
-            --if clientId == nil then 
-            --    server:send(json.encode(loginRequest))    
-            --end
-            local event = host:service()
-            if event then 
-                if event.data ~= 0 then     
-                    --client.process(event)
-                    local o = json.decode(event.data)
-                    if o.type == 'login_response' then 
-                        clientId = o.clientId 
-                        serverTick = (1/40)
-                        print(event.data)
-                    elseif o.type == 'ping_response' then
-                        local v = o.value
-                        local thisPing = v - lastPing
-                        table.insert(pings, thisPing)
-                        lastPing = v
-                    end
-                end
-            else
-                server:send(json.encode(get_ping))
-            end
-        end
-    end
+    -- CLIENT service called right before draw()
+    coroutine.resume(serviceCall)
 end
 
 function lovr.mirror()
