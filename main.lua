@@ -26,6 +26,8 @@ clientId = nil
 serverTick = (1/40) -- 25ms, to target 50ms updates
 pings = {}
 lastPing = 0
+broadcasts = {}
+lastBroadcast = 0
 
 loginRequest = {
     message_type = 'login', 
@@ -66,10 +68,15 @@ serviceCall = coroutine.create(function()
                             serverTick = (1/40)
                             print(event.data)
                         elseif o.type == 'ping_response' then
-                            local v = o.value
+                            local v = o.ts
                             local thisPing = v - lastPing
                             table.insert(pings, thisPing)
                             lastPing = v
+                        elseif o.type == 'state' then
+                            local v = o.ts
+                            local thisBroadcast = v - lastBroadcast
+                            table.insert(broadcasts, thisBroadcast)
+                            lastBroadcast = v
                         end
                     end
                 else
@@ -108,9 +115,9 @@ function lovr.load()
     lovr.headset.setClipDistance(0.1, 100.0)
 
     -- Connect
-    host = enet.host_create()
+    host = enet.host_create(nil, 64, 2, 0, 0)
     -- Ben's AWS 01:
-    server = host:connect("54.196.121.96:33111")
+    server = host:connect("54.196.121.96:33111", 2)
     
 end
 
@@ -162,5 +169,14 @@ function lovr.quit()
     end
     avg = avg / #pings 
     print('Average ping: ' .. round(avg, 1))
-    --
+    -- Print averaage broadcast time
+    avg = 0
+    for i=1,#broadcasts do 
+        if broadcasts[i] > 999 then broadcasts[i] = 999 end
+        avg = avg + broadcasts[i]
+    end
+    avg = avg / #broadcasts 
+    print('Average broadcast: ' .. round(avg, 1))
+
+
 end
