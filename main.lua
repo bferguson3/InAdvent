@@ -28,6 +28,9 @@ pings = {}
 lastPing = 0
 broadcasts = {}
 lastBroadcast = 0
+currentState = {} -- world state .data
+myPlayerState = {}
+lastPlayerState = {} 
 
 loginRequest = {
     message_type = 'login', 
@@ -77,10 +80,16 @@ serviceCall = coroutine.create(function()
                             local thisBroadcast = v - lastBroadcast
                             table.insert(broadcasts, thisBroadcast)
                             lastBroadcast = v
+                            currentState = o.data
                         end
                     end
                 else
-                    server:send(json.encode(get_ping))
+                    if myPlayerState ~= lastPlayerState then 
+                        server:send(json.encode(myPlayerState))
+                        lastPlayerState = myPlayerState
+                    else
+                        server:send(json.encode(get_ping))
+                    end
                 end
             end
         end 
@@ -177,6 +186,5 @@ function lovr.quit()
     end
     avg = avg / #broadcasts 
     print('Average broadcast: ' .. round(avg, 1))
-
 
 end
