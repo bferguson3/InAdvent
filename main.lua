@@ -29,9 +29,22 @@ lastPing = 0
 broadcasts = {}
 lastBroadcast = 0
 currentState = {} -- world state .data
-myPlayerState = {}
+myPlayerState = {
+    pos = { x = 0.0, y = 0.0, z = 0.0 },
+    rot = { x = 0.0, y = 0.0, z = 0.0, m = 0.0 },
+    lHandPos = { x = 0.0, y = 0.0, z = 0.0 },
+    lHandRot = { x = 0.0, y = 0.0, z = 0.0, m = 0.0 },
+    lHandObj = '',
+    rHandPos = { x = 0.0, y = 0.0, z = 0.0 },
+    rHandRot = { x = 0.0, y = 0.0, z = 0.0, m = 0.0 },
+    rHandObj = '',
+    faceTx = '',
+    bodyTx = '',
+    action = ''
+}
 lastPlayerState = {} 
 
+-- Packets 
 loginRequest = {
     message_type = 'login', 
     data = {
@@ -49,7 +62,23 @@ get_ping = {
     message_type = "get_ping",
     data = {}
 }
---
+
+start_action = {
+    message_type = "start_action",
+    data = { action_types.melee_swing }
+}
+
+action_types = {
+    ['melee_swing'] = {
+        action = 'melee_swing', 
+        swing_range = 0.0
+    },
+    ['chat'] = {
+        action = 'chat',
+        string = ''
+    }
+}
+
 -- CLIENT
 serviceCall = coroutine.create(function()
     while 1 == 1 do
@@ -80,7 +109,8 @@ serviceCall = coroutine.create(function()
                             local thisBroadcast = v - lastBroadcast
                             table.insert(broadcasts, thisBroadcast)
                             lastBroadcast = v
-                            currentState = o.data
+                            currentState = o.data --FIXME
+                            -- Look for 'action' receipt here
                         end
                     end
                 else
