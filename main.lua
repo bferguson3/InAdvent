@@ -19,83 +19,26 @@ p = {
 deltaTime = 0.0
 gameTime = 0.0
 
--- Network defs
-host = nil
-server = nil
-clientId = nil
 serverTick = (1/40) -- 25ms, to target 50ms updates
-pings = {}
-lastPing = 0
-broadcasts = {}
-lastBroadcast = 0
 currentState = {} -- world state .data
-myPlayerState = {}
-lastPlayerState = {} 
-
-loginRequest = {
-    message_type = 'login', 
-    data = {
-        player_username = "user",
-        password = "password"
-    }
+local myPlayerState = {
+    pos = { x = 0.0, y = 0.0, z = 0.0 },
+    rot = { x = 0.0, y = 0.0, z = 0.0, m = 0.0 },
+    lHandPos = { x = 0.0, y = 0.0, z = 0.0 },
+    lHandRot = { x = 0.0, y = 0.0, z = 0.0, m = 0.0 },
+    lHandObj = '',
+    rHandPos = { x = 0.0, y = 0.0, z = 0.0 },
+    rHandRot = { x = 0.0, y = 0.0, z = 0.0, m = 0.0 },
+    rHandObj = '',
+    faceTx = '',
+    bodyTx = '',
+    action = ''
 }
 
-pong = {
-    message_type = "pong",
-    data = {}
-}
 
-get_ping = { 
-    message_type = "get_ping",
-    data = {}
-}
---
--- CLIENT
-serviceCall = coroutine.create(function()
-    while 1 == 1 do
-        serverTick = serverTick - deltaTime 
-        if serverTick < 0 then 
-            --if clientId == nil then serverTick = serverTick + 3.0 end
-            serverTick = serverTick + (1/40)
-            if server then
-                --if clientId == nil then 
-                --    server:send(json.encode(loginRequest))    
-                --end
-                local event = host:service()
-                if event then 
-                    if event.data ~= 0 then     
-                        --client.process(event)
-                        local o = json.decode(event.data)
-                        if o.type == 'login_response' then 
-                            clientId = o.clientId 
-                            serverTick = (1/40)
-                            print(event.data)
-                        elseif o.type == 'ping_response' then
-                            local v = o.ts
-                            local thisPing = v - lastPing
-                            table.insert(pings, thisPing)
-                            lastPing = v
-                        elseif o.type == 'state' then
-                            local v = o.ts
-                            local thisBroadcast = v - lastBroadcast
-                            table.insert(broadcasts, thisBroadcast)
-                            lastBroadcast = v
-                            currentState = o.data
-                        end
-                    end
-                else
-                    if myPlayerState ~= lastPlayerState then 
-                        server:send(json.encode(myPlayerState))
-                        lastPlayerState = myPlayerState
-                    else
-                        server:send(json.encode(get_ping))
-                    end
-                end
-            end
-        end 
-        coroutine.yield() -- while true...
-    end
-end)-- end service
+local thread 
+local channel 
+threadCode = lovr.filesystem.read('thread.lua')
 
 function lovr.load()
 
@@ -120,14 +63,15 @@ function lovr.load()
     texSwd1 = lovr.graphics.newTexture('sword1.png')
     texSwd1:setFilter('nearest')
 
+	satFont = lovr.graphics.newFont('saturno.ttf')
+
     -- Just in case!
     lovr.headset.setClipDistance(0.1, 100.0)
 
-    -- Connect
-    host = enet.host_create(nil, 64, 2, 0, 0)
-    -- Ben's AWS 01:
-    server = host:connect("54.196.121.96:33111", 2)
-    
+    t = lovr.thread.newThread(threadCode)
+    channel = lovr.thread.getChannel('chan')
+    t:start()
+
 end
 
 function lovr.update(dT)
@@ -142,8 +86,13 @@ function lovr.update(dT)
              p.z + math.sin(p.rot)))
     view = lovr.math.newMat4(camera):invert()
 
-    -- CLIENT service called right before draw()
-    coroutine.resume(serviceCall)
+	-- CLIENT service called right before draw()
+	serverTick = serverTick - deltaTime 
+	if serverTick < 0 then 
+		serverTick = serverTick + (1/40)
+		channel:push('tick')
+	end
+    --coroutine.resume(serviceCall)
 end
 
 function lovr.mirror()
@@ -163,28 +112,15 @@ function lovr.draw()
     shader:send('curTex', texSwd1)
     sword1:draw(-1, 1, -5, 1, gameTime*4, 1, 0, 0)
 
-    lovr.graphics.setShader()
-    lovr.graphics.print('ima fk uup', 2, 3, -6)
+	lovr.graphics.setShader()
+	lovr.graphics.setFont(satFont)
+    lovr.graphics.print('ima fk uup\npoing!', 2, 3, -6)
 
     lovr.graphics.reset()
 end
 
 function lovr.quit()
-    -- Print average ping!
-    local avg = 0
-    for i=1,#pings do 
-        if pings[i] > 999 then pings[i] = 999 end
-        avg = avg + pings[i]
-    end
-    avg = avg / #pings 
-    print('Average ping: ' .. round(avg, 1))
-    -- Print averaage broadcast time
-    avg = 0
-    for i=1,#broadcasts do 
-        if broadcasts[i] > 999 then broadcasts[i] = 999 end
-        avg = avg + broadcasts[i]
-    end
-    avg = avg / #broadcasts 
-    print('Average broadcast: ' .. round(avg, 1))
 
+	channel:push('getbc')
+	
 end
