@@ -115,3 +115,16 @@ end
 function clamp(min, val, max)
     return math.max(min, math.min(val, max))
 end
+
+
+function GetAverage(list)
+    list = list or nil 
+    if list == nil then return 0 end 
+    local avg = 0
+    for i=1,#list do 
+        if list[i] > 999 then list[i] = 999 end 
+        avg = avg + list[i]
+    end
+    avg = avg / #list 
+    return avg 
+end
