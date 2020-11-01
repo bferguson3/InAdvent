@@ -8,6 +8,14 @@ local b64 = require 'base64'
 local m = lovr.filesystem.load('lib.lua'); m()
 
 -- Globals
+player_flags = {
+    MOVING_FORWARD = false,
+    MOVING_BACKWARD = false,
+    STRAFE_LEFT = false, 
+    STRAFE_RIGHT = false, 
+    TURNING_RIGHT = false,
+    TURNING_LEFT = false 
+}
 shader = nil
 camera = nil
 view = nil
@@ -35,6 +43,7 @@ local myPlayerState = {
     action = ''
 }
 
+local playerSpeed = 5.0
 
 local thread 
 local channel 
@@ -86,13 +95,74 @@ function lovr.update(dT)
              p.z + math.sin(p.rot)))
     view = lovr.math.newMat4(camera):invert()
 
+    -- keyboard for desktop
+    if player_flags.MOVING_FORWARD then 
+        p.z = p.z + (deltaTime * playerSpeed) * math.sin(p.rot)
+        p.x = p.x + (deltaTime * playerSpeed) * math.cos(p.rot)
+    elseif player_flags.MOVING_BACKWARD then 
+        p.z = p.z - (deltaTime * playerSpeed) * math.sin(p.rot)
+        p.x = p.x - (deltaTime * playerSpeed) * math.cos(p.rot)
+    end
+    if player_flags.STRAFE_RIGHT then 
+        p.x = p.x + (deltaTime * playerSpeed) * math.cos(p.rot + math.pi/2)
+        p.z = p.z + (deltaTime * playerSpeed) * math.sin(p.rot + math.pi/2)
+    elseif player_flags.STRAFE_LEFT then 
+        p.x = p.x + (deltaTime * playerSpeed) * math.cos(p.rot - math.pi/2)
+        p.z = p.z + (deltaTime * playerSpeed) * math.sin(p.rot - math.pi/2)
+    end
+    if player_flags.TURNING_RIGHT then 
+        p.rot = p.rot + (deltaTime * playerSpeed/2)
+    elseif player_flags.TURNING_LEFT then 
+        p.rot = p.rot - (deltaTime * playerSpeed/2)
+    end
+    if player_flags.MOVING_BACKWARD or player_flags.MOVING_FORWARD or player_flags.STRAFE_RIGHT or player_flags.STRAFE_LEFT or player_flags.TURNING_LEFT or player_flags.TURNING_RIGHT then 
+        myPlayerState.UPDATE_ME = true 
+    else myPlayerState.UPDATE_ME = false end 
+
+    -- Update my state for the thread!
+    myPlayerState.pos.x = round(p.x, 3); myPlayerState.pos.y = round(p.y, 3); myPlayerState.pos.z = round(p.z, 3);
+
 	-- CLIENT service called right before draw()
 	serverTick = serverTick - deltaTime 
 	if serverTick < 0 then 
 		serverTick = serverTick + (1/40)
-		channel:push('tick')
+        channel:push('tick')
+        channel:push(json.encode(myPlayerState))
 	end
     --coroutine.resume(serviceCall)
+
+end
+
+function lovr.keypressed(key, scancode, rep)
+    if key == 'w' then 
+        player_flags.MOVING_FORWARD = true
+    elseif key == 's' then 
+        player_flags.MOVING_BACKWARD = true
+    elseif key == 'd' then 
+        player_flags.STRAFE_RIGHT = true 
+    elseif key == 'a' then 
+        player_flags.STRAFE_LEFT = true 
+    elseif key == 'right' then 
+        player_flags.TURNING_RIGHT = true 
+    elseif key == 'left' then 
+        player_flags.TURNING_LEFT = true 
+    end
+end
+
+function lovr.keyreleased(key, sc, r)
+    if key == 'w' then 
+        player_flags.MOVING_FORWARD = false
+    elseif key == 's' then 
+        player_flags.MOVING_BACKWARD = false 
+    elseif key == 'd' then 
+        player_flags.STRAFE_RIGHT = false 
+    elseif key == 'a' then 
+        player_flags.STRAFE_LEFT = false 
+    elseif key == 'right' then 
+        player_flags.TURNING_RIGHT = false
+    elseif key == 'left' then 
+        player_flags.TURNING_LEFT = false 
+    end
 end
 
 function lovr.mirror()
@@ -111,6 +181,11 @@ function lovr.draw()
     p_head:draw(0, p.h + 0, -5)
     shader:send('curTex', texSwd1)
     sword1:draw(-1, 1, -5, 1, gameTime*4, 1, 0, 0)
+
+    lovr.graphics.setShader()
+    lovr.graphics.setColor(0, 1, 0, 1)
+    lovr.graphics.plane('fill', 0, 0, 0, 20, 20, math.pi/2, 1, 0, 0)
+    lovr.graphics.setColor(1, 1, 1, 1)
 
 	lovr.graphics.setShader()
 	lovr.graphics.setFont(satFont)

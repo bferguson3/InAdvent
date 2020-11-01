@@ -1,11 +1,12 @@
 -- InAdvent client thread!
 if not lovr then lovr = require "lovr" end 
 if not lovr.thread then lovr.thread = require "lovr.thread" end
-if not enet then require "enet" end 
-if not json then json = require "json" end
 if not lovr.filesystem then lovr.filesystem = require "lovr.filesystem" end 
-local m = lovr.filesystem.load('lib.lua'); m()
+
+if not enet then enet = require "enet" end 
+local json = require 'cjson'
 if not action_types then require "action_types" end 
+local m = lovr.filesystem.load('lib.lua'); m()
 
 local lastBroadcast = 99
 local clientId 
@@ -57,13 +58,24 @@ start_action = {
 local host = enet.host_create(nil, 64, 2, 0, 0)
 -- Ben's AWS 01:
 local server = host:connect("54.196.121.96:33111", 2)
-
+-- Thread communication
 local channel = lovr.thread.getChannel('chan')
+
+function WaitForNext(ch)
+    local w = ch:pop() 
+    while w == nil do 
+        w = channel:pop()
+    end
+    return w
+end
 
 while true do 
     local msg = channel:pop()
     if msg ~= nil then 
         if msg == 'tick' then 
+            local next = WaitForNext(channel)
+            myPlayerState = json.decode(next)
+            --print(state.pos.x)
             if server then 
                 local event = host:service()
                 if event then
@@ -90,9 +102,11 @@ while true do
                         end
                     end
                 else
-                    if myPlayerState ~= lastPlayerState then 
+                    --if myPlayerState ~= lastPlayerState then 
+                    if myPlayerState.UPDATE_ME then 
                         server:send(json.encode(myPlayerState))
                         lastPlayerState = myPlayerState
+                        print(lastPlayerState.pos.x, myPlayerState.pos.x)
                     else
                         server:send(json.encode(packets.get_ping))
                     end
