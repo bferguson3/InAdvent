@@ -102,14 +102,12 @@ while true do
                         end
                     end
                 else
-                    --if myPlayerState ~= lastPlayerState then 
                     if myPlayerState.UPDATE_ME then 
                         server:send(json.encode(myPlayerState))
                         lastPlayerState = myPlayerState
-                        print(lastPlayerState.pos.x, myPlayerState.pos.x)
-                    else
-                        server:send(json.encode(packets.get_ping))
                     end
+                    -- Always send ping, man!
+                    server:send(json.encode(packets.get_ping))
                 end
             end
         elseif msg == 'getbc' then 
