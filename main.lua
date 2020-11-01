@@ -115,9 +115,12 @@ function lovr.update(dT)
     elseif player_flags.TURNING_LEFT then 
         p.rot = p.rot - (deltaTime * playerSpeed/2)
     end
-    if player_flags.MOVING_BACKWARD or player_flags.MOVING_FORWARD or player_flags.STRAFE_RIGHT or player_flags.STRAFE_LEFT or player_flags.TURNING_LEFT or player_flags.TURNING_RIGHT then 
+    if player_flags.MOVING_BACKWARD or player_flags.MOVING_FORWARD or player_flags.STRAFE_RIGHT 
+    or player_flags.STRAFE_LEFT or player_flags.TURNING_LEFT or player_flags.TURNING_RIGHT then 
         myPlayerState.UPDATE_ME = true 
-    else myPlayerState.UPDATE_ME = false end 
+    else 
+        myPlayerState.UPDATE_ME = false 
+    end 
 
     -- Update my state for the thread!
     myPlayerState.pos.x = round(p.x, 3); myPlayerState.pos.y = round(p.y, 3); myPlayerState.pos.z = round(p.z, 3);
@@ -129,7 +132,6 @@ function lovr.update(dT)
         channel:push('tick')
         channel:push(json.encode(myPlayerState))
 	end
-    --coroutine.resume(serviceCall)
 
 end
 
