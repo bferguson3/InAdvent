@@ -64,7 +64,7 @@ local channel = lovr.thread.getChannel('chan')
 function WaitForNext(ch)
     local w = ch:pop() 
     while w == nil do 
-        w = channel:pop()
+        w = ch:pop()
     end
     return w
 end
