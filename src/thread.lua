@@ -36,15 +36,8 @@ local host = enet.host_create(nil, 64, 2, 0, 0)
 -- Ben's AWS 01:
 local server = host:connect("54.196.121.96:33111", 2)
 -- Thread communication
-local channel = lovr.thread.getChannel('chan')
-
-function WaitForNext(ch)
-    local w = ch:pop() 
-    while w == nil do 
-        w = ch:pop()
-    end
-    return w
-end
+local toMain = lovr.thread.getChannel('toMain')
+local toThread = lovr.thread.getChannel('toThread')
 
 
 function ProcessEvent(o)
@@ -58,12 +51,19 @@ function ProcessEvent(o)
         table.insert(pings, thisPing)
         lastPing = v
         isConnected = true
+        if clientId ~= o.playerId then 
+            clientId = o.playerId 
+            toMain:push('GivingClientID')
+            toMain:push(clientId)
+        end
     elseif o.type == 'state' then
         local v = o.ts
         local thisBroadcast = v - lastBroadcast
         table.insert(broadcasts, thisBroadcast)
         lastBroadcast = v
         currentState = o.data --FIXME
+        toMain:push('GivingWorldState') 
+        toMain:push(json.encode(o.data))
         --printtable(o.data)
         -- Look for 'action' receipt here
     end
@@ -71,10 +71,10 @@ end
 
 -- Main loop
 while true do 
-    local msg = channel:pop()
+    local msg = toThread:pop()
     if msg ~= nil then 
         if msg == 'tick' then 
-            local next = WaitForNext(channel)
+            local next = WaitForNext(toThread)
             myPlayerState = json.decode(next)
             if server then 
                 local event = host:service()

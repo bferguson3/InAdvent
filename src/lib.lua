@@ -42,12 +42,27 @@ function include(fileName)
     m()
 end
 
+function WaitForNext(ch)
+    local w = ch:pop() 
+    while w == nil do 
+        w = ch:pop()
+    end
+    return w
+end
 
 function printtable(o)
     for k,v in pairs(o) do 
         print(k,v)
         if type(v) == 'table' then print('---'); printtable(v) end 
     end
+end
+
+function getvar(o, var)
+    for k,v in pairs(o) do 
+        if k == var then return v end 
+        if type(v) == 'table' then getvar(v, var) end 
+    end
+    return nil 
 end
 
 -- define myDebug object 

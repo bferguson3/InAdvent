@@ -28,7 +28,9 @@ deltaTime = 0.0
 gameTime = 0.0
 
 serverTick = (1/40) -- 25ms, to target 50ms updates
-currentState = {} -- world state .data
+currentState = {
+    players = {}
+} -- world state .data
 local myPlayerState = {
     pos = { x = 0.0, y = 0.0, z = 0.0 },
     rot = { x = 0.0, y = 0.0, z = 0.0, m = 0.0 },
@@ -45,7 +47,8 @@ local myPlayerState = {
 
 local playerSpeed = 5.0
 local firstUpdate = false
-local thread 
+local toThread 
+local toMain 
 local channel 
 threadCode = lovr.filesystem.read('src/thread.lua')
 
@@ -78,14 +81,32 @@ function lovr.load()
     lovr.headset.setClipDistance(0.1, 100.0)
 
     t = lovr.thread.newThread(threadCode)
-    channel = lovr.thread.getChannel('chan')
+    toMain = lovr.thread.getChannel('toMain')
+    toThread = lovr.thread.getChannel('toThread')
     t:start()
     
 end
 
+local clientId
+
 function lovr.update(dT)
+    
     deltaTime = dT
     gameTime = gameTime + dT
+
+    -- Get pending info from Thread if any 
+    local cmsg = toMain:pop()
+    if cmsg ~= nil then 
+        if cmsg == 'GivingClientID' then 
+            clientId = WaitForNext(toMain)
+            print(clientId)
+        elseif cmsg == 'GivingWorldState' then 
+            currentState = json.decode(WaitForNext(toMain))
+            --for k,v in pairs(currentState.players) do 
+            --    print(k)
+            --end
+        end
+    end
 
     -- VIEW
     camera = lovr.math.newMat4():lookAt(
@@ -128,8 +149,8 @@ function lovr.update(dT)
 	serverTick = serverTick - deltaTime 
 	if serverTick < 0 then 
 		serverTick = serverTick + (1/40)
-        channel:push('tick')
-        channel:push(json.encode(myPlayerState))
+        toThread:push('tick')
+        toThread:push(json.encode(myPlayerState))
 	end
 
 end
@@ -143,6 +164,8 @@ function lovr.mirror()
     lovr.graphics.transform(view)
     lovr.draw()
 end
+
+lg = lovr.graphics 
 
 function lovr.draw()
     lovr.graphics.setShader(shader)
@@ -164,11 +187,19 @@ function lovr.draw()
 	lovr.graphics.setFont(satFont)
     lovr.graphics.print('ima fk uup\npoing!', 2, 3, -6)
 
+    for k,v in pairs(currentState.players) do 
+        if k then 
+            if (v.pos) then 
+                lg.print(k, v.pos.x, v.pos.y + 2, v.pos.z)
+            end
+        end
+    end
+
     lovr.graphics.reset()
 end
 
 function lovr.quit()
 
-	channel:push('getbc')
+	toThread:push('getbc')
 	
 end
