@@ -4,8 +4,8 @@
 
 local enet = require 'enet'
 local json = require 'cjson'
-local b64 = require 'base64'
-local m = lovr.filesystem.load('lib.lua'); m()
+local b64 = require 'src/base64'
+local m = lovr.filesystem.load('src/lib.lua'); m()
 
 -- Globals
 player_flags = {
@@ -44,35 +44,35 @@ local myPlayerState = {
 }
 
 local playerSpeed = 5.0
-
+local firstUpdate = false
 local thread 
 local channel 
-threadCode = lovr.filesystem.read('thread.lua')
+threadCode = lovr.filesystem.read('src/thread.lua')
 
 function lovr.load()
 
     -- Setup shaders
-    local defaultVert = lovr.filesystem.read('default.vert')
-    local defaultFrag = lovr.filesystem.read('default.frag')
+    local defaultVert = lovr.filesystem.read('shaders/default.vert')
+    local defaultFrag = lovr.filesystem.read('shaders/default.frag')
 
     shader = lovr.graphics.newShader(defaultVert, defaultFrag, 
         { flags = { uniformScale = true } }
     )
 
     -- Load models
-    p_body = lovr.graphics.newModel('p_body.glb')
-    p_head = lovr.graphics.newModel('p_head.glb')
-    sword1 = lovr.graphics.newModel('sword1.glb')
+    p_body = lovr.graphics.newModel('assets/p_body.glb')
+    p_head = lovr.graphics.newModel('assets/p_head.glb')
+    sword1 = lovr.graphics.newModel('assets/sword1.glb')
 
     -- Load textures
-    texChain = lovr.graphics.newTexture('chainmail.png')
+    texChain = lovr.graphics.newTexture('assets/chainmail.png')
     texChain:setFilter('nearest')
-    texFace1 = lovr.graphics.newTexture('face1.png')
+    texFace1 = lovr.graphics.newTexture('assets/face1.png')
     texFace1:setFilter('nearest')
-    texSwd1 = lovr.graphics.newTexture('sword1.png')
+    texSwd1 = lovr.graphics.newTexture('assets/sword1.png')
     texSwd1:setFilter('nearest')
 
-	satFont = lovr.graphics.newFont('saturno.ttf')
+	satFont = lovr.graphics.newFont('assets/saturno.ttf')
 
     -- Just in case!
     lovr.headset.setClipDistance(0.1, 100.0)
@@ -80,7 +80,7 @@ function lovr.load()
     t = lovr.thread.newThread(threadCode)
     channel = lovr.thread.getChannel('chan')
     t:start()
-
+    
 end
 
 function lovr.update(dT)
@@ -121,7 +121,6 @@ function lovr.update(dT)
     else 
         myPlayerState.UPDATE_ME = false 
     end 
-
     -- Update my state for the thread!
     myPlayerState.pos.x = round(p.x, 3); myPlayerState.pos.y = round(p.y, 3); myPlayerState.pos.z = round(p.z, 3);
 
