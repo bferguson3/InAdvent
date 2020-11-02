@@ -136,6 +136,8 @@ function lovr.update(dT)
     elseif player_flags.TURNING_LEFT then 
         p.rot = p.rot - (deltaTime * playerSpeed/2)
     end
+    if p.rot < -math.pi then p.rot = math.pi end 
+    if p.rot > math.pi then p.rot = -math.pi end 
     if player_flags.MOVING_BACKWARD or player_flags.MOVING_FORWARD or player_flags.STRAFE_RIGHT 
     or player_flags.STRAFE_LEFT or player_flags.TURNING_LEFT or player_flags.TURNING_RIGHT then 
         myPlayerState.UPDATE_ME = true 
@@ -144,7 +146,8 @@ function lovr.update(dT)
     end 
     -- Update my state for the thread!
     myPlayerState.pos.x = round(p.x, 3); myPlayerState.pos.y = round(p.y, 3); myPlayerState.pos.z = round(p.z, 3);
-
+    -- convert rotation to quaternion
+    myPlayerState.rot.m = p.rot; 
 	-- CLIENT service called right before draw()
 	serverTick = serverTick - deltaTime 
 	if serverTick < 0 then 
@@ -190,7 +193,7 @@ function lovr.draw()
     for k,v in pairs(currentState.players) do 
         if k then 
             if (v.pos) then 
-                lg.print(k, v.pos.x, v.pos.y + 2, v.pos.z)
+                lg.print(k, v.pos.x, v.pos.y + 2, v.pos.z, 1.0, -v.rot.m + math.pi/2)
             end
         end
     end
