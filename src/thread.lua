@@ -46,6 +46,7 @@ function WaitForNext(ch)
     return w
 end
 
+
 function ProcessEvent(o)
     if o.type == 'login_response' then 
         clientId = o.clientId 
@@ -63,6 +64,7 @@ function ProcessEvent(o)
         table.insert(broadcasts, thisBroadcast)
         lastBroadcast = v
         currentState = o.data --FIXME
+        --printtable(o.data)
         -- Look for 'action' receipt here
     end
 end

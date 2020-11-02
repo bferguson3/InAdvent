@@ -42,6 +42,14 @@ function include(fileName)
     m()
 end
 
+
+function printtable(o)
+    for k,v in pairs(o) do 
+        print(k,v)
+        if type(v) == 'table' then print('---'); printtable(v) end 
+    end
+end
+
 -- define myDebug object 
 --[[
 myDebug = {
