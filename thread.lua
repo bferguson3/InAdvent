@@ -51,6 +51,11 @@ get_ping = {
 start_action = {
     message_type = "start_action",
     data = action_types.melee_swing
+},
+
+update_position = {
+    message_type = "update",
+    data = {}
 }
 
 }
@@ -58,6 +63,7 @@ start_action = {
 local host = enet.host_create(nil, 64, 2, 0, 0)
 -- Ben's AWS 01:
 local server = host:connect("54.196.121.96:33111", 2)
+-- local server = host:connect("localhost:33111", 2)
 -- Thread communication
 local channel = lovr.thread.getChannel('chan')
 
@@ -103,7 +109,9 @@ while true do
                     end
                 else
                     if myPlayerState.UPDATE_ME then 
-                        server:send(json.encode(myPlayerState))
+                        local updatePacket = packets.update_position
+                        updatePacket.data = myPlayerState
+                        server:send(json.encode(updatePacket))
                         lastPlayerState = myPlayerState
                     end
                     -- Always send ping, man!
