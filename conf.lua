@@ -29,8 +29,8 @@ function lovr.conf(t)
     t.window.width = 1080
     t.window.height = 600
     t.window.fullscreen = false
-    t.window.msaa = 0
-    t.window.vsync = 0
+    t.window.msaa = 4
+    t.window.vsync = 1
     t.window.title = 'InAdvent'
     t.window.icon = nil
   end

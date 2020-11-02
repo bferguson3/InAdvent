@@ -21,6 +21,7 @@ vec4 CalcDirLight(DirLight light, vec3 normal, vec4 baseColor)
 
 vec4 color(vec4 graphicsColor, sampler2D image, vec2 uv) 
 {    
+    
     vec2 myuv = uv;
     myuv.y = -myuv.y;
     //diffuse

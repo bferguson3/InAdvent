@@ -2,10 +2,10 @@
 -- InAdvent
 --
 
-local enet = require 'enet'
-local json = require 'cjson'
-local b64 = require 'src/base64'
-local m = lovr.filesystem.load('src/lib.lua'); m()
+if not enet then enet = require 'enet' end 
+if not json then json = require 'cjson' end 
+if not b64 then b64 = require 'src/base64' end 
+if not EGA then local m = lovr.filesystem.load('src/lib.lua'); m() end 
 
 -- Globals
 player_flags = {

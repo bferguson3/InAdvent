@@ -3,9 +3,9 @@ if not lovr then lovr = require "lovr" end
 if not lovr.thread then lovr.thread = require "lovr.thread" end
 if not lovr.filesystem then lovr.filesystem = require "lovr.filesystem" end 
 if not enet then enet = require "enet" end 
-local json = require 'cjson'
+if not json then json = require 'cjson' end
 if not action_types then require "src/action_types" end 
-local m = lovr.filesystem.load('src/lib.lua'); m()
+if not EGA then local m = lovr.filesystem.load('src/lib.lua'); m() end 
 -- Packets 
 local packets = require 'src/packets'
 
