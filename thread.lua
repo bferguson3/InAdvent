@@ -30,28 +30,33 @@ local lastPlayerState = {}
 
 -- Packets 
 local packets = {
-loginRequest = {
-    message_type = 'login', 
-    data = {
-        player_username = "user",
-        password = "password"
+    loginRequest = {
+        message_type = 'login', 
+        data = {
+            player_username = "user",
+            password = "password"
+        }
+    },
+
+    pong = {
+        message_type = "pong",
+        data = {}
+    },
+
+    get_ping = { 
+        message_type = "get_ping",
+        data = {}
+    },
+
+    start_action = {
+        message_type = "start_action",
+        data = action_types.melee_swing
+    },
+
+    update = {
+        message_type = "update",
+        data = {}
     }
-},
-
-pong = {
-    message_type = "pong",
-    data = {}
-},
-
-get_ping = { 
-    message_type = "get_ping",
-    data = {}
-},
-
-start_action = {
-    message_type = "start_action",
-    data = action_types.melee_swing
-}
 
 }
 -- Connect
@@ -103,7 +108,8 @@ while true do
                     end
                 else
                     if myPlayerState.UPDATE_ME then 
-                        server:send(json.encode(myPlayerState))
+                        packets.update.data = myPlayerState
+                        server:send(json.encode(packets.update))
                         lastPlayerState = myPlayerState
                     end
                     -- Always send ping, man!
