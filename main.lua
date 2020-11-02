@@ -22,7 +22,7 @@ view = nil
 p = {
     x = 0.0, y = 0.0, z = 0.0, 
     rot = -math.pi/2,
-    h = 1.7
+    h = 0.0
 }
 deltaTime = 0.0
 gameTime = 0.0
@@ -94,6 +94,8 @@ function lovr.update(dT)
     deltaTime = dT
     gameTime = gameTime + dT
 
+    hx, hy, hz = lovr.headset.getPosition('head')
+    p.h = hy 
     -- Get pending info from Thread if any 
     local cmsg = toMain:pop()
     if cmsg ~= nil then 
