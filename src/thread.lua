@@ -61,7 +61,7 @@ function ProcessEvent(o)
         local thisBroadcast = v - lastBroadcast
         table.insert(broadcasts, thisBroadcast)
         lastBroadcast = v
-        currentState = o.data --FIXME
+        currentState = o.data --TODO
         toMain:push('GivingWorldState') 
         toMain:push(json.encode(o.data))
         --printtable(o.data)

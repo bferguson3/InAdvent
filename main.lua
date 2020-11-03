@@ -147,7 +147,7 @@ function lovr.update(dT)
         myPlayerState.UPDATE_ME = false 
     end 
     -- Update my state for the thread!
-    myPlayerState.pos.x = round(p.x, 3); myPlayerState.pos.y = round(p.y, 3); myPlayerState.pos.z = round(p.z, 3);
+    myPlayerState.pos.x = round(p.x, 3); myPlayerState.pos.y = round(p.y + p.h, 3); myPlayerState.pos.z = round(p.z, 3);
     -- convert rotation to quaternion
     myPlayerState.rot.m = -p.rot + math.pi/2; 
 	-- CLIENT service called right before draw()
@@ -175,11 +175,6 @@ lg = lovr.graphics
 function lovr.draw()
     lovr.graphics.setShader(shader)
 
-    --lovr.graphics.sphere(0, 1, -3)
-    shader:send('curTex', texChain)
-    p_body:draw(0, p.h - 0.25, -5)
-    shader:send('curTex', texFace1)
-    p_head:draw(0, p.h + 0, -5)
     shader:send('curTex', texSwd1)
     sword1:draw(-1, 1, -5, 1, gameTime*4, 1, 0, 0)
 
@@ -195,7 +190,15 @@ function lovr.draw()
     for k,v in pairs(currentState.players) do 
         if k then 
             if (v.pos) then 
-                lg.print(k, v.pos.x, v.pos.y + 2, v.pos.z, 1.0, v.rot.m)
+                lg.setShader(shader)
+                if tonumber(k) ~= clientId then 
+                    shader:send('curTex', texChain) -- TODO 
+                    p_body:draw(v.pos.x, v.pos.y - 0.25, v.pos.z, 1.0, v.rot.m)
+                    shader:send('curTex', texFace1) -- TODO
+                    p_head:draw(v.pos.x, v.pos.y, v.pos.z, 1.0, v.rot.m)
+                end
+                lg.setShader()
+                lg.print(k, v.pos.x, v.pos.y + 3, v.pos.z, 1.0, v.rot.m)
             end
         end
     end
