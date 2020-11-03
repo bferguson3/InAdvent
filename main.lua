@@ -2,6 +2,8 @@
 -- InAdvent
 --
 
+TARGETING_OCULUS_QUEST = false
+
 if not enet then enet = require 'enet' end 
 if not json then json = require 'cjson' end 
 if not b64 then b64 = require 'src/base64' end 
@@ -110,6 +112,18 @@ function lovr.update(dT)
         end
     end
 
+    if TARGETING_OCULUS_QUEST then 
+        local lx, ly = lovr.headset.getAxis('hand/left', 'thumbstick')
+        --print(lx, ly) -- UP is Y+, DOWN is Y-, LEFT is X-, RIGHT is X+
+        if ly > 0.5 then player_flags.MOVING_BACKWARD = true else player_flags.MOVING_BACKWARD = false end 
+        if ly < -0.5 then player_flags.MOVING_FORWARD = true else player_flags.MOVING_FORWARD = false end 
+        if lx > 0.5 then player_flags.STRAFE_LEFT = true else player_flags.STRAFE_LEFT = false end 
+        if lx < -0.5 then player_flags.STRAFE_RIGHT = true else player_flags.STRAFE_RIGHT = false end 
+        local rx, ry = lovr.headset.getAxis('hand/right', 'thumbstick')
+        if rx > 0.5 then player_flags.TURNING_RIGHT = true else player_flags.TURNING_RIGHT = false end 
+        if rx < -0.5 then player_flags.TURNING_LEFT = true else player_flags.TURNING_LEFT = false end 
+    end
+
     -- VIEW
     camera = lovr.math.newMat4():lookAt(
         vec3(p.x, p.y + p.h, p.z),
@@ -118,7 +132,6 @@ function lovr.update(dT)
              p.z + math.sin(p.rot)))
     view = lovr.math.newMat4(camera):invert()
 
-    -- keyboard for desktop
     if player_flags.MOVING_FORWARD then 
         p.z = p.z + (deltaTime * playerSpeed) * math.sin(p.rot)
         p.x = p.x + (deltaTime * playerSpeed) * math.cos(p.rot)
@@ -161,18 +174,22 @@ function lovr.update(dT)
 end
 
 --Input
-include 'src/input.lua'
---
 
-function lovr.mirror()
-    lovr.graphics.clear()
-    lovr.graphics.transform(view)
-    lovr.draw()
+if not TARGETING_OCULUS_QUEST then 
+    include 'src/input.lua'
+
+    function lovr.mirror()
+        lovr.graphics.clear()
+        --lovr.graphics.transform(view)
+        lovr.draw()
+    end
 end
+--
 
 lg = lovr.graphics 
 
 function lovr.draw()
+    lovr.graphics.transform(view)
     lovr.graphics.setShader(shader)
 
     shader:send('curTex', texSwd1)
