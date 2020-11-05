@@ -2,7 +2,7 @@
 -- InAdvent
 --
 
-TARGETING_OCULUS_QUEST = true
+TARGETING_OCULUS_QUEST = false
 
 if not enet then enet = require 'enet' end 
 if not json then json = require 'cjson' end 
@@ -26,6 +26,7 @@ p = {
     rot = -math.pi/2,
     h = 0.0
 }
+if not TARGETING_OCULUS_QUEST then p.y = 1.6 end
 deltaTime = 0.0
 gameTime = 0.0
 
@@ -148,7 +149,6 @@ function lovr.update(dT)
     deltaTime = dT
     gameTime = gameTime + dT
 
-    headsetState.an, headsetState.ax, headsetState.ay, headsetState.az = lovr.headset.getOrientation()
     headsetState = GetHead()
     p.h = headsetState.y
 
@@ -253,8 +253,7 @@ if not TARGETING_OCULUS_QUEST then
     include 'src/input.lua'
 
     function lovr.mirror()
-        lovr.graphics.clear()
-        --lovr.graphics.transform(view)
+        lg.clear()
         lovr.draw()
     end
 end
@@ -302,11 +301,21 @@ function lovr.draw()
     lg.print('GUI test', 
         guipos.x, guipos.y, guipos.z, 0.2, -p.rot-math.pi/2)
     --[[ HMD-oriented GUI]]
-    local gpos2 = { x = p.x + 2.0 * math.cos(hr + p.rot - 0.2),
-        y = p.h + 1,
-        z = p.z + 2.0 * math.sin(hr + p.rot - 0.2) }
-    lg.print('HP: 10 / 10\nMP: 2 / 2\nLv: 1\nXP: 0 / 1000', 
-        gpos2.x, gpos2.y, gpos2.z, 0.1, -(hr+p.rot)-math.pi/2)
+    if TARGETING_OCULUS_QUEST then 
+        local gpos2 = { x = p.x + 2.0 * math.cos(hr + p.rot - 0.2),
+            y = p.h + 1,
+            z = p.z + 2.0 * math.sin(hr + p.rot - 0.2) }
+        lg.print('HP: 10 / 10\nMP: 2 / 2\nLv: 1\nXP: 0 / 1000', 
+            gpos2.x, gpos2.y, gpos2.z, 0.1, -(hr+p.rot)-math.pi/2,
+            0, 1, 0, 0, 'left')
+    else 
+        local gpos2 = { x = p.x + 2.0 * math.cos(p.rot - 0.8),
+        y = p.h + 0.6,
+        z = p.z + 2.0 * math.sin(p.rot - 0.8) }
+        lg.print('HP: 10 / 10\nMP: 2 / 2\nLv: 1\nXP: 0 / 1000', 
+            gpos2.x, gpos2.y, gpos2.z, 0.1, -(p.rot)-math.pi/2, 
+            0, 1, 0, 0, 'left')
+    end
 
     lovr.graphics.reset()
 end
