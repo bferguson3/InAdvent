@@ -2,7 +2,7 @@
 -- InAdvent
 --
 
-TARGETING_OCULUS_QUEST = false
+TARGETING_OCULUS_QUEST = true
 
 if not enet then enet = require 'enet' end 
 if not json then json = require 'cjson' end 
@@ -22,7 +22,7 @@ shader = nil
 camera = nil
 view = nil
 p = {
-    x = 0.0, y = 0.0, z = 0.0, 
+    x = 0.0, y = 0, z = 0.0, 
     rot = -math.pi/2,
     h = 0.0
 }
@@ -54,24 +54,43 @@ local toMain
 local channel 
 threadCode = lovr.filesystem.read('src/thread.lua')
 
+local headsetState = {
+    x = 0, y = 0, z = 0,
+    an = 0, ax = 0, ay = 1, az = 0
+}
+
 -- GUI code
+--[[
 local GUI = { canvas = nil }
 GUI.render = function ()
     lg.setShader()
     lg.setFont()
-    local guipos = { x = p.x + 2.0 * math.cos(p.rot - 0.65), 
-        z = p.z + 2.0 * math.sin(p.rot - 0.65), 
-        y = p.y + p.h + 0.5 }
+    --local guipos = { x = p.x + 2.0 * math.cos(p.rot - 0.33), 
+    --    z = p.z + 2.0 * math.sin(p.rot - 0.33), 
+    --    y = p.y + p.h }
+    local guipos = {
+        x = 0, 
+        y = 2, 
+        z = -2
+    }
     GUI.canvas:renderTo(function()
         lg.clear(0, 0, 0, 0)
         lg.print('GUI test\nHP: 10 / 10\nMP: 2 / 2\nLv: 1\nXP: 0 / 1000', 
-            guipos.x, guipos.y, guipos.z, 0.2, -p.rot-math.pi/2, 0, 1, 0, 0, 'left')
+            guipos.x, guipos.y, guipos.z, 0.2)
     end)
-    lg.plane(lg.newMaterial(GUI.canvas:getTexture()), guipos.x, guipos.y, guipos.z, 2, 1, -p.rot-math.pi/2)
+    --lg.plane(lg.newMaterial(GUI.canvas:getTexture()), guipos.x, guipos.y, guipos.z, 2, 1, -p.rot-math.pi/2)
+    
 end
+]]
 
+local ori = {
+    x = 0, y = 0, z = 0, an = 0, ax = 0, ay = 1, az = 0
+}
+local hr 
 
 function lovr.load()
+    
+    ori.x, ori.y, ori.z, ori.an, ori.ax, ori.ay, ori.az = lovr.headset.getPose()
 
     -- Setup shaders
     local defaultVert = lovr.filesystem.read('shaders/default.vert')
@@ -102,10 +121,10 @@ function lovr.load()
     local scr_w, scr_h
     if TARGETING_OCULUS_QUEST then 
         scr_w, scr_h = lovr.headset.getDisplayDimensions()
-        GUI.canvas = lovr.graphics.newCanvas(scr_w, scr_h, { stereo = false })
+        GUI = lovr.graphics.newCanvas(scr_w, scr_h, { stereo = true})
     else 
         scr_w, scr_h = 1080, 600 
-        GUI.canvas = lovr.graphics.newCanvas(scr_w, scr_h, { stereo = false })
+        GUI = lovr.graphics.newCanvas(scr_w, scr_h, { stereo = false })
     end
 
     t = lovr.thread.newThread(threadCode)
@@ -113,17 +132,26 @@ function lovr.load()
     toThread = lovr.thread.getChannel('toThread')
     t:start()
 
+    print('Debug: LOAD completed')
 end
 
 local clientId
+
+function GetHead()
+    local fx, fy, fz, fan, fax, fay, faz = lovr.headset.getPose('head')
+    local o = { x = fx, y = fy, z = fz, an = fan, ax = fax, ay = fay, az = faz }
+    return o
+end
 
 function lovr.update(dT)
     
     deltaTime = dT
     gameTime = gameTime + dT
 
-    hx, hy, hz = lovr.headset.getPosition('head')
-    p.h = hy 
+    headsetState.an, headsetState.ax, headsetState.ay, headsetState.az = lovr.headset.getOrientation()
+    headsetState = GetHead()
+    p.h = headsetState.y
+
     -- Get pending info from Thread if any 
     local cmsg = toMain:pop()
     if cmsg ~= nil then 
@@ -132,38 +160,56 @@ function lovr.update(dT)
             print(clientId)
         elseif cmsg == 'GivingWorldState' then 
             currentState = json.decode(WaitForNext(toMain))
-            --for k,v in pairs(currentState.players) do 
-            --    print(k)
-            --end
         end
     end
 
     if TARGETING_OCULUS_QUEST then 
         local lx, ly = lovr.headset.getAxis('hand/left', 'thumbstick')
         --print(lx, ly) -- UP is Y+, DOWN is Y-, LEFT is X-, RIGHT is X+
-        if ly > 0.5 then player_flags.MOVING_BACKWARD = true else player_flags.MOVING_BACKWARD = false end 
-        if ly < -0.5 then player_flags.MOVING_FORWARD = true else player_flags.MOVING_FORWARD = false end 
-        if lx > 0.5 then player_flags.STRAFE_LEFT = true else player_flags.STRAFE_LEFT = false end 
-        if lx < -0.5 then player_flags.STRAFE_RIGHT = true else player_flags.STRAFE_RIGHT = false end 
+        --projected: 
+        if ly < -0.5 then player_flags.MOVING_BACKWARD = true else player_flags.MOVING_BACKWARD = false end 
+        if ly > 0.5 then player_flags.MOVING_FORWARD = true else player_flags.MOVING_FORWARD = false end 
+        if lx < -0.5 then player_flags.STRAFE_LEFT = true else player_flags.STRAFE_LEFT = false end 
+        if lx > 0.5 then player_flags.STRAFE_RIGHT = true else player_flags.STRAFE_RIGHT = false end 
         local rx, ry = lovr.headset.getAxis('hand/right', 'thumbstick')
         if rx > 0.5 then player_flags.TURNING_RIGHT = true else player_flags.TURNING_RIGHT = false end 
         if rx < -0.5 then player_flags.TURNING_LEFT = true else player_flags.TURNING_LEFT = false end 
     end
 
-
-    if player_flags.MOVING_FORWARD then 
-        p.z = p.z + (deltaTime * playerSpeed) * math.sin(p.rot)
-        p.x = p.x + (deltaTime * playerSpeed) * math.cos(p.rot)
-    elseif player_flags.MOVING_BACKWARD then 
-        p.z = p.z - (deltaTime * playerSpeed) * math.sin(p.rot)
-        p.x = p.x - (deltaTime * playerSpeed) * math.cos(p.rot)
-    end
-    if player_flags.STRAFE_RIGHT then 
-        p.x = p.x + (deltaTime * playerSpeed) * math.cos(p.rot + math.pi/2)
-        p.z = p.z + (deltaTime * playerSpeed) * math.sin(p.rot + math.pi/2)
-    elseif player_flags.STRAFE_LEFT then 
-        p.x = p.x + (deltaTime * playerSpeed) * math.cos(p.rot - math.pi/2)
-        p.z = p.z + (deltaTime * playerSpeed) * math.sin(p.rot - math.pi/2)
+    if not TARGETING_OCULUS_QUEST then
+        if player_flags.MOVING_FORWARD then 
+            p.z = p.z + (deltaTime * playerSpeed) * math.sin(p.rot)
+            p.x = p.x + (deltaTime * playerSpeed) * math.cos(p.rot)
+        elseif player_flags.MOVING_BACKWARD then 
+            p.z = p.z - (deltaTime * playerSpeed) * math.sin(p.rot)
+            p.x = p.x - (deltaTime * playerSpeed) * math.cos(p.rot)
+        end
+        if player_flags.STRAFE_RIGHT then 
+            p.x = p.x + (deltaTime * playerSpeed) * math.cos(p.rot + math.pi/2)
+            p.z = p.z + (deltaTime * playerSpeed) * math.sin(p.rot + math.pi/2)
+        elseif player_flags.STRAFE_LEFT then 
+            p.x = p.x + (deltaTime * playerSpeed) * math.cos(p.rot - math.pi/2)
+            p.z = p.z + (deltaTime * playerSpeed) * math.sin(p.rot - math.pi/2)
+        end
+    else 
+        hr = headsetState.an * headsetState.ay
+        if hr < -math.pi then hr = hr + math.pi end 
+        if hr > math.pi then hr = hr - math.pi end 
+        hr = hr * -1
+        if player_flags.MOVING_FORWARD then 
+            p.z = p.z + (deltaTime * playerSpeed) * math.sin(hr + p.rot)
+            p.x = p.x + (deltaTime * playerSpeed) * math.cos(hr + p.rot)
+        elseif player_flags.MOVING_BACKWARD then 
+            p.z = p.z - (deltaTime * playerSpeed) * math.sin(hr + p.rot)
+            p.x = p.x - (deltaTime * playerSpeed) * math.cos(hr + p.rot)
+        end
+        if player_flags.STRAFE_RIGHT then 
+            p.x = p.x + (deltaTime * playerSpeed) * math.cos((hr+p.rot) + math.pi/2)
+            p.z = p.z + (deltaTime * playerSpeed) * math.sin((hr+p.rot) + math.pi/2)
+        elseif player_flags.STRAFE_LEFT then 
+            p.x = p.x + (deltaTime * playerSpeed) * math.cos((hr+p.rot) - math.pi/2)
+            p.z = p.z + (deltaTime * playerSpeed) * math.sin((hr+p.rot) - math.pi/2)
+        end
     end
     if player_flags.TURNING_RIGHT then 
         p.rot = p.rot + (deltaTime * playerSpeed/2)
@@ -185,9 +231,9 @@ function lovr.update(dT)
     
     -- VIEW
     camera = lovr.math.newMat4():lookAt(
-        vec3(p.x, p.y + p.h, p.z),
+        vec3(p.x, p.y, p.z),
         vec3(p.x + math.cos(p.rot), 
-             p.y + p.h, 
+             p.y, 
              p.z + math.sin(p.rot)))
     view = lovr.math.newMat4(camera):invert()
 
@@ -249,8 +295,19 @@ function lovr.draw()
     end
 
     -- Draw gui
-    GUI:render()
-    
+    --[[ World-rotation agnostic GUI]]
+    local guipos = { x = p.x + 2.0 * math.cos(p.rot), 
+        z = p.z + 2.0 * math.sin(p.rot), 
+        y = p.h }
+    lg.print('GUI test', 
+        guipos.x, guipos.y, guipos.z, 0.2, -p.rot-math.pi/2)
+    --[[ HMD-oriented GUI]]
+    local gpos2 = { x = p.x + 2.0 * math.cos(hr + p.rot - 0.2),
+        y = p.h + 1,
+        z = p.z + 2.0 * math.sin(hr + p.rot - 0.2) }
+    lg.print('HP: 10 / 10\nMP: 2 / 2\nLv: 1\nXP: 0 / 1000', 
+        gpos2.x, gpos2.y, gpos2.z, 0.1, -(hr+p.rot)-math.pi/2)
+
     lovr.graphics.reset()
 end
 
