@@ -54,6 +54,23 @@ local toMain
 local channel 
 threadCode = lovr.filesystem.read('src/thread.lua')
 
+-- GUI code
+local GUI = { canvas = nil }
+GUI.render = function ()
+    lg.setShader()
+    lg.setFont()
+    local guipos = { x = p.x + 2.0 * math.cos(p.rot - 0.65), 
+        z = p.z + 2.0 * math.sin(p.rot - 0.65), 
+        y = p.y + p.h + 0.5 }
+    GUI.canvas:renderTo(function()
+        lg.clear(0, 0, 0, 0)
+        lg.print('GUI test\nHP: 10 / 10\nMP: 2 / 2\nLv: 1\nXP: 0 / 1000', 
+            guipos.x, guipos.y, guipos.z, 0.2, -p.rot-math.pi/2, 0, 1, 0, 0, 'left')
+    end)
+    lg.plane(lg.newMaterial(GUI.canvas:getTexture()), guipos.x, guipos.y, guipos.z, 2, 1, -p.rot-math.pi/2)
+end
+
+
 function lovr.load()
 
     -- Setup shaders
@@ -82,11 +99,20 @@ function lovr.load()
     -- Just in case!
     lovr.headset.setClipDistance(0.1, 100.0)
 
+    local scr_w, scr_h
+    if TARGETING_OCULUS_QUEST then 
+        scr_w, scr_h = lovr.headset.getDisplayDimensions()
+        GUI.canvas = lovr.graphics.newCanvas(scr_w, scr_h, { stereo = false })
+    else 
+        scr_w, scr_h = 1080, 600 
+        GUI.canvas = lovr.graphics.newCanvas(scr_w, scr_h, { stereo = false })
+    end
+
     t = lovr.thread.newThread(threadCode)
     toMain = lovr.thread.getChannel('toMain')
     toThread = lovr.thread.getChannel('toThread')
     t:start()
-    
+
 end
 
 local clientId
@@ -124,13 +150,6 @@ function lovr.update(dT)
         if rx < -0.5 then player_flags.TURNING_LEFT = true else player_flags.TURNING_LEFT = false end 
     end
 
-    -- VIEW
-    camera = lovr.math.newMat4():lookAt(
-        vec3(p.x, p.y + p.h, p.z),
-        vec3(p.x + math.cos(p.rot), 
-             p.y + p.h, 
-             p.z + math.sin(p.rot)))
-    view = lovr.math.newMat4(camera):invert()
 
     if player_flags.MOVING_FORWARD then 
         p.z = p.z + (deltaTime * playerSpeed) * math.sin(p.rot)
@@ -163,7 +182,16 @@ function lovr.update(dT)
     myPlayerState.pos.x = round(p.x, 3); myPlayerState.pos.y = round(p.y + p.h, 3); myPlayerState.pos.z = round(p.z, 3);
     -- convert rotation to quaternion
     myPlayerState.rot.m = -p.rot + math.pi/2; 
-	-- CLIENT service called right before draw()
+    
+    -- VIEW
+    camera = lovr.math.newMat4():lookAt(
+        vec3(p.x, p.y + p.h, p.z),
+        vec3(p.x + math.cos(p.rot), 
+             p.y + p.h, 
+             p.z + math.sin(p.rot)))
+    view = lovr.math.newMat4(camera):invert()
+
+    -- CLIENT service called right before draw()    
 	serverTick = serverTick - deltaTime 
 	if serverTick < 0 then 
 		serverTick = serverTick + (1/40)
@@ -220,6 +248,9 @@ function lovr.draw()
         end
     end
 
+    -- Draw gui
+    GUI:render()
+    
     lovr.graphics.reset()
 end
 
