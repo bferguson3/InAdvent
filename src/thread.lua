@@ -71,13 +71,15 @@ end
 
 -- Main loop
 while true do 
+    
     local msg = toThread:pop()
     if msg ~= nil then 
         if msg == 'tick' then 
             local next = WaitForNext(toThread)
             myPlayerState = json.decode(next)
             if server then 
-                local event = host:service()
+                local event
+                event = host:service()
                 if event then
                     if event.data ~= (0 or nil) then     
                         local o = json.decode(event.data)

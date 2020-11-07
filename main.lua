@@ -2,7 +2,7 @@
 -- InAdvent
 --
 
-TARGETING_OCULUS_QUEST = false
+TARGETING_OCULUS_QUEST = true
 
 if not enet then enet = require 'enet' end 
 if not json then json = require 'cjson' end 
@@ -26,6 +26,15 @@ p = {
     rot = -math.pi/2,
     h = 0.0
 }
+local leftHand = {
+    x = 0, y = 0, z = 0,
+    an = 0, ax = 0, ay = 0, az = 0
+}
+local rightHand = {
+    x = 0, y = 0, z = 0,
+    an = 0, ax = 0, ay = 0, az = 0
+}
+
 if not TARGETING_OCULUS_QUEST then p.y = 1.6 end
 deltaTime = 0.0
 gameTime = 0.0
@@ -105,6 +114,7 @@ function lovr.load()
     p_body = lovr.graphics.newModel('assets/p_body.glb')
     p_head = lovr.graphics.newModel('assets/p_head.glb')
     sword1 = lovr.graphics.newModel('assets/sword1.glb')
+    hand = lovr.graphics.newModel('assets/blockyhand.glb')
 
     -- Load textures
     texChain = lovr.graphics.newTexture('assets/chainmail.png')
@@ -138,8 +148,8 @@ end
 
 local clientId
 
-function GetHead()
-    local fx, fy, fz, fan, fax, fay, faz = lovr.headset.getPose('head')
+function GetPoseTable(pose)
+    local fx, fy, fz, fan, fax, fay, faz = lovr.headset.getPose(pose)
     local o = { x = fx, y = fy, z = fz, an = fan, ax = fax, ay = fay, az = faz }
     return o
 end
@@ -149,7 +159,7 @@ function lovr.update(dT)
     deltaTime = dT
     gameTime = gameTime + dT
 
-    headsetState = GetHead()
+    headsetState = GetPoseTable('head')
     p.h = headsetState.y
 
     -- Get pending info from Thread if any 
@@ -164,6 +174,11 @@ function lovr.update(dT)
     end
 
     if TARGETING_OCULUS_QUEST then 
+        for i, hand in ipairs(lovr.headset.getHands()) do
+            if hand == 'hand/left' then leftHand = GetPoseTable(hand) elseif 
+                hand == 'hand/right' then rightHand = GetPoseTable(hand)
+            end 
+        end
         local lx, ly = lovr.headset.getAxis('hand/left', 'thumbstick')
         --print(lx, ly) -- UP is Y+, DOWN is Y-, LEFT is X-, RIGHT is X+
         --projected: 
@@ -273,7 +288,7 @@ function lovr.draw()
     lovr.graphics.plane('fill', 0, 0, 0, 20, 20, math.pi/2, 1, 0, 0)
     lovr.graphics.setColor(1, 1, 1, 1)
 
-	lovr.graphics.setShader()
+	--lovr.graphics.setShader()
 	lovr.graphics.setFont(satFont)
     lovr.graphics.print('ima fk uup\npoing!', 2, 3, -6)
 
@@ -291,6 +306,14 @@ function lovr.draw()
                 lg.print(k, v.pos.x, v.pos.y + 3, v.pos.z, 1.0, v.rot.m)
             end
         end
+    end
+
+    if not TARGETING_OCULUS_QUEST then 
+        hand:draw(0, 2, -3)
+    else 
+        -- p.rot is visual world rotation
+        hand:draw(p.x + rightHand.x, p.y + rightHand.y, p.z + rightHand.z, 0.1, rightHand.an, rightHand.ax, rightHand.ay, rightHand.az)
+        hand:draw(p.x + leftHand.x, p.y + leftHand.y, p.z + leftHand.z, 0.1, leftHand.an, leftHand.ax, leftHand.ay, leftHand.az)
     end
 
     -- Draw gui
