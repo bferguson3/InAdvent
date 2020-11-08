@@ -9,6 +9,10 @@ if not json then json = require 'cjson' end
 if not b64 then b64 = require 'src/base64' end 
 if not EGA then local m = lovr.filesystem.load('src/lib.lua'); m() end 
 
+sin = math.sin
+cos = math.cos 
+lg = lovr.graphics 
+
 -- Globals
 player_flags = {
     MOVING_FORWARD = false,
@@ -234,7 +238,7 @@ function lovr.update(dT)
     if p.rot < -math.pi then p.rot = math.pi end 
     if p.rot > math.pi then p.rot = -math.pi end 
     if player_flags.MOVING_BACKWARD or player_flags.MOVING_FORWARD or player_flags.STRAFE_RIGHT 
-    or player_flags.STRAFE_LEFT or player_flags.TURNING_LEFT or player_flags.TURNING_RIGHT then 
+    or player_flags.STRAFE_LEFT or player_flags.TURNING_LEFT or player_flags.TURNING_RIGHT or TARGETING_OCULUS_QUEST then 
         myPlayerState.UPDATE_ME = true 
     else 
         myPlayerState.UPDATE_ME = false 
@@ -243,6 +247,18 @@ function lovr.update(dT)
     myPlayerState.pos.x = round(p.x, 3); myPlayerState.pos.y = round(p.y + p.h, 3); myPlayerState.pos.z = round(p.z, 3);
     -- convert rotation to quaternion
     myPlayerState.rot.m = -p.rot + math.pi/2; 
+    -- Hands 
+    myPlayerState.rHandPos.x = round(p.x + rightHand.x, 3); 
+    myPlayerState.rHandPos.y = round(p.y + rightHand.y, 3);
+    myPlayerState.rHandPos.z = round(p.z + rightHand.z, 3);
+    myPlayerState.rHandRot.m = rightHand.an; myPlayerState.rHandRot.x = rightHand.ax;
+    myPlayerState.rHandRot.y = rightHand.ay; myPlayerState.rHandRot.z = rightHand.az;
+    
+    myPlayerState.lHandPos.x = round(p.x + leftHand.x, 3); 
+    myPlayerState.lHandPos.y = round(p.y + leftHand.y, 3);
+    myPlayerState.lHandPos.z = round(p.z + leftHand.z, 3);
+    myPlayerState.lHandRot.m = leftHand.an; myPlayerState.lHandRot.x = leftHand.ax;
+    myPlayerState.lHandRot.y = leftHand.ay; myPlayerState.lHandRot.z = leftHand.az;
     
     -- VIEW
     camera = lovr.math.newMat4():lookAt(
@@ -274,9 +290,16 @@ if not TARGETING_OCULUS_QUEST then
 end
 --
 
-lg = lovr.graphics 
-
 function lovr.draw()
+    
+    if not TARGETING_OCULUS_QUEST then 
+        hand:draw(0, 2, -3)
+    else 
+        -- p.rot is visual world rotation (p.rot, 0, 1, 0)
+        hand:draw(rightHand.x, rightHand.y, rightHand.z, 0.1, rightHand.an, rightHand.ax, rightHand.ay, rightHand.az)
+        hand:draw(leftHand.x, leftHand.y, leftHand.z, 0.1, leftHand.an, leftHand.ax, leftHand.ay, leftHand.az)
+    end
+
     lovr.graphics.transform(view)
     lovr.graphics.setShader(shader)
 
@@ -306,14 +329,6 @@ function lovr.draw()
                 lg.print(k, v.pos.x, v.pos.y + 3, v.pos.z, 1.0, v.rot.m)
             end
         end
-    end
-
-    if not TARGETING_OCULUS_QUEST then 
-        hand:draw(0, 2, -3)
-    else 
-        -- p.rot is visual world rotation
-        hand:draw(p.x + rightHand.x, p.y + rightHand.y, p.z + rightHand.z, 0.1, rightHand.an, rightHand.ax, rightHand.ay, rightHand.az)
-        hand:draw(p.x + leftHand.x, p.y + leftHand.y, p.z + leftHand.z, 0.1, leftHand.an, leftHand.ax, leftHand.ay, leftHand.az)
     end
 
     -- Draw gui
