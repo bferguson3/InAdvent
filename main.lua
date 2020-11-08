@@ -324,6 +324,8 @@ function lovr.draw()
                     p_body:draw(v.pos.x, v.pos.y - 0.25, v.pos.z, 1.0, v.rot.m)
                     shader:send('curTex', texFace1) -- TODO
                     p_head:draw(v.pos.x, v.pos.y, v.pos.z, 1.0, v.rot.m)
+                    hand:draw(v.rHandPos.x, v.rHandPos.y, v.rHandPos.z, 0.1, v.rHandRot.m, v.rHandRot.x, v.rHandRot.y, v.rHandRot.z)
+                    hand:draw(v.lHandPos.x, v.lHandPos.y, v.lHandPos.z, 0.1, v.lHandRot.m, v.lHandRot.x, v.lHandRot.y, v.lHandRot.z)
                 end
                 lg.setShader()
                 lg.print(k, v.pos.x, v.pos.y + 3, v.pos.z, 1.0, v.rot.m)
