@@ -1,9 +1,9 @@
 local packets = {
     
-    loginRequest = {
+    login_request = {
         message_type = 'login', 
         data = {
-            player_username = "user",
+            username = "user",
             password = "password"
         }
     },
