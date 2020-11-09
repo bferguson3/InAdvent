@@ -11,6 +11,9 @@ local packets = require 'src/packets'
 
 local firstUpdate = true
 local isConnected = false
+local isLoggedIn = false
+local isLoggingIn = false
+local credentials = 'username1/password'
 local lastBroadcast = 99
 local clientId 
 local lastPing = 99
@@ -34,7 +37,8 @@ local lastPlayerState = {}
 -- Connect
 local host = enet.host_create(nil, 64, 2, 0, 0)
 -- Ben's AWS 01:
-local server = host:connect("54.196.121.96:33111", 2)
+--local server = host:connect("54.196.121.96:33111", 2)
+local server = host:connect("localhost:33111", 2)
 -- Thread communication
 local toMain = lovr.thread.getChannel('toMain')
 local toThread = lovr.thread.getChannel('toThread')
@@ -42,9 +46,9 @@ local toThread = lovr.thread.getChannel('toThread')
 
 function ProcessEvent(o)
     if o.type == 'login_response' then 
-        clientId = o.clientId 
-        serverTick = (1/40)
-        print(event.data)
+        isLoggingIn = false
+        isLoggedIn = true
+        print("logged in")
     elseif o.type == 'ping_response' then
         local v = o.ts
         local thisPing = v - lastPing
@@ -87,7 +91,14 @@ while true do
                         ProcessEvent(o)
                     end
                 else
-                    if myPlayerState.UPDATE_ME or (firstUpdate and isConnected) then 
+                    if not isLoggedIn and isConnected and not isLoggingIn then
+                        isLoggingIn = true
+                        local loginPacket = packets.login_request
+                        local userCreds = split(credentials, '/')
+                        loginPacket.data.username = userCreds[1]
+                        loginPacket.data.password = userCreds[2]
+                        server:send(json.encode(loginPacket))
+                    elseif (myPlayerState.UPDATE_ME or (firstUpdate and isConnected)) and isLoggedIn then 
                         local updatePacket = packets.update_position
                         updatePacket.data = myPlayerState
                         server:send(json.encode(updatePacket))
