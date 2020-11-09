@@ -249,13 +249,13 @@ function lovr.update(dT)
     myPlayerState.rot.m = -p.rot + math.pi/2; 
     -- Hands 
     myPlayerState.rHandPos.x = round(p.x + rightHand.x, 3); 
-    myPlayerState.rHandPos.y = round(p.y + rightHand.y, 3);
+    myPlayerState.rHandPos.y = round(p.y + p.h + rightHand.y, 3);
     myPlayerState.rHandPos.z = round(p.z + rightHand.z, 3);
     myPlayerState.rHandRot.m = rightHand.an; myPlayerState.rHandRot.x = rightHand.ax;
     myPlayerState.rHandRot.y = rightHand.ay; myPlayerState.rHandRot.z = rightHand.az;
     
     myPlayerState.lHandPos.x = round(p.x + leftHand.x, 3); 
-    myPlayerState.lHandPos.y = round(p.y + leftHand.y, 3);
+    myPlayerState.lHandPos.y = round(p.y + p.h + leftHand.y, 3);
     myPlayerState.lHandPos.z = round(p.z + leftHand.z, 3);
     myPlayerState.lHandRot.m = leftHand.an; myPlayerState.lHandRot.x = leftHand.ax;
     myPlayerState.lHandRot.y = leftHand.ay; myPlayerState.lHandRot.z = leftHand.az;
@@ -321,9 +321,9 @@ function lovr.draw()
                 lg.setShader(shader)
                 if tonumber(k) ~= clientId then 
                     shader:send('curTex', texChain) -- TODO 
-                    p_body:draw(v.pos.x, v.pos.y - 0.25, v.pos.z, 1.0, v.rot.m)
+                    p_body:draw(v.pos.x, v.pos.y - 0.25, v.pos.z, 0.5, v.rot.m)
                     shader:send('curTex', texFace1) -- TODO
-                    p_head:draw(v.pos.x, v.pos.y, v.pos.z, 1.0, v.rot.m)
+                    p_head:draw(v.pos.x, v.pos.y, v.pos.z, 0.5, v.rot.m)
                     hand:draw(v.rHandPos.x, v.rHandPos.y, v.rHandPos.z, 0.1, v.rHandRot.m, v.rHandRot.x, v.rHandRot.y, v.rHandRot.z)
                     hand:draw(v.lHandPos.x, v.lHandPos.y, v.lHandPos.z, 0.1, v.lHandRot.m, v.lHandRot.x, v.lHandRot.y, v.lHandRot.z)
                 end
