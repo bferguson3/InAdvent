@@ -37,8 +37,8 @@ local lastPlayerState = {}
 -- Connect
 local host = enet.host_create(nil, 64, 2, 0, 0)
 -- Ben's AWS 01:
---local server = host:connect("54.196.121.96:33111", 2)
-local server = host:connect("localhost:33111", 2)
+local server = host:connect("54.196.121.96:33111", 2)
+--local server = host:connect("localhost:33111", 2)
 -- Thread communication
 local toMain = lovr.thread.getChannel('toMain')
 local toThread = lovr.thread.getChannel('toThread')

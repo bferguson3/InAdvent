@@ -119,6 +119,7 @@ function lovr.load()
     p_head = lovr.graphics.newModel('assets/p_head.glb')
     sword1 = lovr.graphics.newModel('assets/sword1.glb')
     hand = lovr.graphics.newModel('assets/blockyhand.glb')
+    gob_a = lg.newModel('assets/goblin-a.glb')
 
     -- Load textures
     texChain = lovr.graphics.newTexture('assets/chainmail.png')
@@ -127,6 +128,8 @@ function lovr.load()
     texFace1:setFilter('nearest')
     texSwd1 = lovr.graphics.newTexture('assets/sword1.png')
     texSwd1:setFilter('nearest')
+    texGob_a = lg.newTexture('assets/orc-uv-front.png')
+    texGob_a:setFilter('nearest')
 
 	satFont = lovr.graphics.newFont('assets/saturno.ttf')
 
@@ -235,8 +238,11 @@ function lovr.update(dT)
     elseif player_flags.TURNING_LEFT then 
         p.rot = p.rot - (deltaTime * playerSpeed/2)
     end
-    if p.rot < -math.pi then p.rot = math.pi end 
-    if p.rot > math.pi then p.rot = -math.pi end 
+    --if p.rot < -math.pi then p.rot = math.pi end 
+    --if p.rot > math.pi then p.rot = -math.pi end 
+    if p.rot < 0 then p.rot = p.rot + (2*math.pi) end 
+    if p.rot > (2*math.pi) then p.rot = p.rot - (2*math.pi) end 
+    
     if player_flags.MOVING_BACKWARD or player_flags.MOVING_FORWARD or player_flags.STRAFE_RIGHT 
     or player_flags.STRAFE_LEFT or player_flags.TURNING_LEFT or player_flags.TURNING_RIGHT or TARGETING_OCULUS_QUEST then 
         myPlayerState.UPDATE_ME = true 
@@ -291,7 +297,11 @@ end
 --
 
 function lovr.draw()
-    
+    -- DAY
+    --lg.clear(1/3, 1/3, 1, 1)
+    -- NIGHT
+    lg.clear(0, 0, 2/3, 1)
+
     if not TARGETING_OCULUS_QUEST then 
         hand:draw(0, 2, -3)
     else 
@@ -303,11 +313,13 @@ function lovr.draw()
     lovr.graphics.transform(view)
     lovr.graphics.setShader(shader)
 
+    -- sword
     shader:send('curTex', texSwd1)
     sword1:draw(-1, 1, -5, 1, gameTime*4, 1, 0, 0)
 
+    -- ground plane
     lovr.graphics.setShader()
-    lovr.graphics.setColor(0, 1, 0, 1)
+    lovr.graphics.setColor(0, 2/3, 0, 1)
     lovr.graphics.plane('fill', 0, 0, 0, 20, 20, math.pi/2, 1, 0, 0)
     lovr.graphics.setColor(1, 1, 1, 1)
 
@@ -321,17 +333,22 @@ function lovr.draw()
                 lg.setShader(shader)
                 if tonumber(k) ~= clientId then 
                     shader:send('curTex', texChain) -- TODO 
-                    p_body:draw(v.pos.x, v.pos.y - 0.25, v.pos.z, 0.5, v.rot.m)
+                    p_body:draw(v.pos.x, v.pos.y - 0.25, v.pos.z, 0.33, v.rot.m)
                     shader:send('curTex', texFace1) -- TODO
-                    p_head:draw(v.pos.x, v.pos.y, v.pos.z, 0.5, v.rot.m)
-                    hand:draw(v.rHandPos.x, v.rHandPos.y, v.rHandPos.z, 0.1, v.rHandRot.m, v.rHandRot.x, v.rHandRot.y, v.rHandRot.z)
-                    hand:draw(v.lHandPos.x, v.lHandPos.y, v.lHandPos.z, 0.1, v.lHandRot.m, v.lHandRot.x, v.lHandRot.y, v.lHandRot.z)
+                    p_head:draw(v.pos.x, v.pos.y, v.pos.z, 0.25, v.rot.m)
+                    hand:draw(v.rHandPos.x, v.rHandPos.y, v.rHandPos.z, 0.2, v.rHandRot.m, v.rHandRot.x, v.rHandRot.y, v.rHandRot.z)
+                    hand:draw(v.lHandPos.x, v.lHandPos.y, v.lHandPos.z, 0.2, v.lHandRot.m, v.lHandRot.x, v.lHandRot.y, v.lHandRot.z)
                 end
                 lg.setShader()
                 lg.print(k, v.pos.x, v.pos.y + 3, v.pos.z, 1.0, v.rot.m)
             end
         end
     end
+
+    lg.setShader(shader)
+    shader:send('curTex', texGob_a)
+    gob_a:draw(0, 0, 0)
+    lg.setShader()
 
     -- Draw gui
     --[[ World-rotation agnostic GUI]]
