@@ -300,7 +300,7 @@ function lovr.draw()
     -- DAY
     --lg.clear(1/3, 1/3, 1, 1)
     -- NIGHT
-    lg.clear(0, 0, 2/3, 1)
+    lg.clear(EGA(1))
 
     if not TARGETING_OCULUS_QUEST then 
         hand:draw(0, 2, -3)
@@ -319,9 +319,9 @@ function lovr.draw()
 
     -- ground plane
     lovr.graphics.setShader()
-    lovr.graphics.setColor(0, 2/3, 0, 1)
+    lovr.graphics.setColor(EGA(2))
     lovr.graphics.plane('fill', 0, 0, 0, 20, 20, math.pi/2, 1, 0, 0)
-    lovr.graphics.setColor(1, 1, 1, 1)
+    lovr.graphics.setColor(EGA(15))
 
 	--lovr.graphics.setShader()
 	lovr.graphics.setFont(satFont)

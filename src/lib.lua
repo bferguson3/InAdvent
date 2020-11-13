@@ -4,7 +4,18 @@ lovrRed = { 1.0, 0.0, 0.0, 1.0 }
 lovrGreen = { 0.0, 1.0, 0.0, 1.0 }
 lovrBlue = { 0.0, 0.0, 1.0, 1.0 }
 
-EGA = {
+EGA = function(col)
+    if type(col) == 'number' then 
+        if col >= 0 and col < 16 then 
+            col = col + 1
+            return EGAVALS[col][1], EGAVALS[col][2], EGAVALS[col][3], EGAVALS[col][4]
+        end
+    else
+        return EGAVALS[1]
+    end
+end
+
+EGAVALS = {
     {0.0, 0.0, 0.0, 1.0},
     {0.0, 0.0, 0.67, 1.0},
     {0.0, 0.67, 0.0, 1.0},
