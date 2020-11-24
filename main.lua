@@ -8,6 +8,7 @@ if not enet then enet = require 'enet' end
 if not json then json = require 'cjson' end 
 if not b64 then b64 = require 'src/base64' end 
 if not EGA then local m = lovr.filesystem.load('src/lib.lua'); m() end 
+local letters = require 'src/letters'
 
 sin = math.sin
 cos = math.cos 
@@ -102,9 +103,57 @@ local ori = {
 }
 local hr 
 
+letters_drawables = {}
+
+function InitializeKBDrawables()
+    local drawables = letters_drawables
+      --[[
+    table.insert(drawables, letters.Button:new{
+        position = lovr.math.newVec3(-0.3, 1.2, -1),
+        onPressed = function() 
+          letters.defaultKeyboard = letters.HoverKeyboard
+          drawables[2]:setSelected(false)
+        end,
+        label = "Hover",
+        isToggle = true
+      })
+      table.insert(drawables, letters.Button:new{
+        position = lovr.math.newVec3(0.3, 1.2, -1),
+        onPressed = function() 
+          letters.defaultKeyboard = letters.ButterflyKeyboard
+          drawables[1]:setSelected(false)
+        end,
+        label = "Butterfly",
+        isToggle = true
+      })
+      --]]
+      font = lovr.graphics.newFont(16)
+      table.insert(drawables, letters.TextField:new{
+        position = lovr.math.newVec3(-3, p.y+p.h+2, -5),
+        font = font,
+        --onReturn = function() drawables[4]:makeKey(); return false; end,
+        placeholder = "USERNAME"
+      })
+      table.insert(drawables, letters.TextField:new{
+        position = lovr.math.newVec3(-3, p.y+p.h+1, -5),
+        font = font,
+        placeholder = "PASSWORD"
+      })
+      drawables[1]:deselect()
+    
+      
+      for i, hand in ipairs(letters.hands) do
+        table.insert(drawables, hand)
+      end
+end
+
 function lovr.load()
     
     ori.x, ori.y, ori.z, ori.an, ori.ax, ori.ay, ori.az = lovr.headset.getPose()
+
+    if TARGETING_OCULUS_QUEST then letters.load() end 
+    letters.defaultKeyboard = letters.HoverKeyboard
+    InitializeKBDrawables()
 
     -- Setup shaders
     local defaultVert = lovr.filesystem.read('shaders/default.vert')
@@ -181,6 +230,12 @@ function lovr.update(dT)
     end
 
     if TARGETING_OCULUS_QUEST then 
+        -- keyboard
+        letters.update()
+        for i, t in ipairs(letters_drawables) do 
+            t:update()
+        end    
+        -- hands
         for i, hand in ipairs(lovr.headset.getHands()) do
             if hand == 'hand/left' then leftHand = GetPoseTable(hand) elseif 
                 hand == 'hand/right' then rightHand = GetPoseTable(hand)
@@ -302,6 +357,13 @@ function lovr.draw()
     -- NIGHT
     lg.clear(EGA(1))
 
+    if TARGETING_OCULUS_QUEST then 
+        letters.draw()
+        for i,t in ipairs(letters_drawables) do 
+            t:draw()
+        end
+    end
+
     if not TARGETING_OCULUS_QUEST then 
         hand:draw(0, 2, -3)
     else 
@@ -347,7 +409,7 @@ function lovr.draw()
 
     lg.setShader(shader)
     shader:send('curTex', texGob_a)
-    gob_a:draw(0, 0, 0)
+    gob_a:draw(0, 0, -5)
     lg.setShader()
 
     -- Draw gui
