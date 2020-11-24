@@ -211,7 +211,6 @@ function GetPoseTable(pose)
 end
 
 function lovr.update(dT)
-    
     deltaTime = dT
     gameTime = gameTime + dT
 
@@ -402,7 +401,7 @@ function lovr.draw()
                     hand:draw(v.lHandPos.x, v.lHandPos.y, v.lHandPos.z, 0.2, v.lHandRot.m, v.lHandRot.x, v.lHandRot.y, v.lHandRot.z)
                 end
                 lg.setShader()
-                lg.print(k, v.pos.x, v.pos.y + 3, v.pos.z, 1.0, v.rot.m)
+                lg.print(k, v.pos.x, v.pos.y + 1, v.pos.z, 0.6, v.rot.m)
             end
         end
     end
