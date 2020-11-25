@@ -434,8 +434,7 @@ function lovr.draw()
             gpos2.x, gpos2.y, gpos2.z, 0.1, -(p.rot)-math.pi/2, 
             0, 1, 0, 0, 'left')
     end
-
-    lovr.graphics.reset()
+    
 end
 
 function lovr.quit()

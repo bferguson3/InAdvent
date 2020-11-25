@@ -42,13 +42,14 @@ local server = host:connect("54.196.121.96:33111", 2)
 -- Thread communication
 local toMain = lovr.thread.getChannel('toMain')
 local toThread = lovr.thread.getChannel('toThread')
-
+local updatessent = 0
 
 function ProcessEvent(o)
     if o.type == 'login_response' then 
         isLoggingIn = false
         isLoggedIn = true
         print("logged in")
+        server:send(json.encode(packets.get_ping))
     elseif o.type == 'ping_response' then
         local v = o.ts
         local thisPing = v - lastPing
@@ -91,7 +92,7 @@ while true do
                         ProcessEvent(o)
                     end
                 else
-                    if not isLoggedIn and isConnected and not isLoggingIn then
+                    if not isLoggedIn then
                         isLoggingIn = true
                         local loginPacket = packets.login_request
                         local userCreds = split(credentials, '/')
@@ -102,9 +103,11 @@ while true do
                         local updatePacket = packets.update_position
                         updatePacket.data = myPlayerState
                         server:send(json.encode(updatePacket))
+                        --updatesSent = updatesSent + 1
+                        --print('ups sent : ' .. updatesSent)
                     end
                     -- Always send ping, man!
-                    server:send(json.encode(packets.get_ping))
+                    --server:send(json.encode(packets.get_ping))
                 end
             end
         elseif msg == 'getbc' then 
