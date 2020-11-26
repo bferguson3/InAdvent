@@ -2,7 +2,7 @@
 -- InAdvent
 --
 
-TARGETING_OCULUS_QUEST = true
+TARGETING_OCULUS_QUEST = false
 
 if not enet then enet = require 'enet' end 
 if not json then json = require 'cjson' end 
@@ -15,21 +15,21 @@ cos = math.cos
 lg = lovr.graphics 
 
 -- Globals
-player_flags = {
-    MOVING_FORWARD = false,
-    MOVING_BACKWARD = false,
-    STRAFE_LEFT = false, 
-    STRAFE_RIGHT = false, 
-    TURNING_RIGHT = false,
-    TURNING_LEFT = false 
-}
 shader = nil
 camera = nil
 view = nil
 p = {
     x = 0.0, y = 0, z = 0.0, 
     rot = -math.pi/2,
-    h = 0.0
+    h = 0.0,
+    flags = {
+        MOVING_FORWARD = false,
+        MOVING_BACKWARD = false,
+        STRAFE_LEFT = false, 
+        STRAFE_RIGHT = false, 
+        TURNING_RIGHT = false,
+        TURNING_LEFT = false 
+    }
 }
 local leftHand = {
     x = 0, y = 0, z = 0,
@@ -207,30 +207,36 @@ function lovr.update(dT)
                 hand == 'hand/right' then rightHand = GetPoseTable(hand)
             end 
         end
-        local lx, ly = lovr.headset.getAxis('hand/left', 'thumbstick')
         --print(lx, ly) -- UP is Y+, DOWN is Y-, LEFT is X-, RIGHT is X+
         --projected: 
-        if ly < -0.5 then player_flags.MOVING_BACKWARD = true else player_flags.MOVING_BACKWARD = false end 
-        if ly > 0.5 then player_flags.MOVING_FORWARD = true else player_flags.MOVING_FORWARD = false end 
-        if lx < -0.5 then player_flags.STRAFE_LEFT = true else player_flags.STRAFE_LEFT = false end 
-        if lx > 0.5 then player_flags.STRAFE_RIGHT = true else player_flags.STRAFE_RIGHT = false end 
+        local lx, ly = lovr.headset.getAxis('hand/left', 'thumbstick')
+        if ly < -0.5 then p.flags.MOVING_BACKWARD = true else 
+            p.flags.MOVING_BACKWARD = false end 
+        if ly > 0.5 then p.flags.MOVING_FORWARD = true else 
+            p.flags.MOVING_FORWARD = false end 
+        if lx < -0.5 then p.flags.STRAFE_LEFT = true else 
+            p.flags.STRAFE_LEFT = false end 
+        if lx > 0.5 then p.flags.STRAFE_RIGHT = true else 
+            p.flags.STRAFE_RIGHT = false end 
         local rx, ry = lovr.headset.getAxis('hand/right', 'thumbstick')
-        if rx > 0.5 then player_flags.TURNING_RIGHT = true else player_flags.TURNING_RIGHT = false end 
-        if rx < -0.5 then player_flags.TURNING_LEFT = true else player_flags.TURNING_LEFT = false end 
+        if rx > 0.5 then p.flags.TURNING_RIGHT = true else 
+            p.flags.TURNING_RIGHT = false end 
+        if rx < -0.5 then p.flags.TURNING_LEFT = true else 
+            p.flags.TURNING_LEFT = false end 
     end
 
     if not TARGETING_OCULUS_QUEST then
-        if player_flags.MOVING_FORWARD then 
+        if p.flags.MOVING_FORWARD then 
             p.z = p.z + (deltaTime * playerSpeed) * math.sin(p.rot)
             p.x = p.x + (deltaTime * playerSpeed) * math.cos(p.rot)
-        elseif player_flags.MOVING_BACKWARD then 
+        elseif p.flags.MOVING_BACKWARD then 
             p.z = p.z - (deltaTime * playerSpeed) * math.sin(p.rot)
             p.x = p.x - (deltaTime * playerSpeed) * math.cos(p.rot)
         end
-        if player_flags.STRAFE_RIGHT then 
+        if p.flags.STRAFE_RIGHT then 
             p.x = p.x + (deltaTime * playerSpeed) * math.cos(p.rot + math.pi/2)
             p.z = p.z + (deltaTime * playerSpeed) * math.sin(p.rot + math.pi/2)
-        elseif player_flags.STRAFE_LEFT then 
+        elseif p.flags.STRAFE_LEFT then 
             p.x = p.x + (deltaTime * playerSpeed) * math.cos(p.rot - math.pi/2)
             p.z = p.z + (deltaTime * playerSpeed) * math.sin(p.rot - math.pi/2)
         end
@@ -239,53 +245,60 @@ function lovr.update(dT)
         if hr < -math.pi then hr = hr + math.pi end 
         if hr > math.pi then hr = hr - math.pi end 
         hr = hr * -1
-        if player_flags.MOVING_FORWARD then 
+        if p.flags.MOVING_FORWARD then 
             p.z = p.z + (deltaTime * playerSpeed) * math.sin(hr + p.rot)
             p.x = p.x + (deltaTime * playerSpeed) * math.cos(hr + p.rot)
-        elseif player_flags.MOVING_BACKWARD then 
+        elseif p.flags.MOVING_BACKWARD then 
             p.z = p.z - (deltaTime * playerSpeed) * math.sin(hr + p.rot)
             p.x = p.x - (deltaTime * playerSpeed) * math.cos(hr + p.rot)
         end
-        if player_flags.STRAFE_RIGHT then 
-            p.x = p.x + (deltaTime * playerSpeed) * math.cos((hr+p.rot) + math.pi/2)
-            p.z = p.z + (deltaTime * playerSpeed) * math.sin((hr+p.rot) + math.pi/2)
-        elseif player_flags.STRAFE_LEFT then 
-            p.x = p.x + (deltaTime * playerSpeed) * math.cos((hr+p.rot) - math.pi/2)
-            p.z = p.z + (deltaTime * playerSpeed) * math.sin((hr+p.rot) - math.pi/2)
+        if p.flags.STRAFE_RIGHT then 
+            p.x = p.x + (deltaTime * playerSpeed) 
+                * math.cos((hr+p.rot) + math.pi/2)
+            p.z = p.z + (deltaTime * playerSpeed) 
+                * math.sin((hr+p.rot) + math.pi/2)
+        elseif p.flags.STRAFE_LEFT then 
+            p.x = p.x + (deltaTime * playerSpeed) 
+                 math.cos((hr+p.rot) - math.pi/2)
+            p.z = p.z + (deltaTime * playerSpeed) 
+                * math.sin((hr+p.rot) - math.pi/2)
         end
     end
-    if player_flags.TURNING_RIGHT then 
+    if p.flags.TURNING_RIGHT then 
         p.rot = p.rot + (deltaTime * playerSpeed/2)
-    elseif player_flags.TURNING_LEFT then 
+    elseif p.flags.TURNING_LEFT then 
         p.rot = p.rot - (deltaTime * playerSpeed/2)
     end
-    --if p.rot < -math.pi then p.rot = math.pi end 
-    --if p.rot > math.pi then p.rot = -math.pi end 
     if p.rot < 0 then p.rot = p.rot + (2*math.pi) end 
     if p.rot > (2*math.pi) then p.rot = p.rot - (2*math.pi) end 
-    
-    if player_flags.MOVING_BACKWARD or player_flags.MOVING_FORWARD or player_flags.STRAFE_RIGHT 
-    or player_flags.STRAFE_LEFT or player_flags.TURNING_LEFT or player_flags.TURNING_RIGHT or TARGETING_OCULUS_QUEST then 
-        myPlayerState.UPDATE_ME = true 
+    -- PS updates
+    local me = myPlayerState 
+    if p.flags.MOVING_BACKWARD or p.flags.MOVING_FORWARD or 
+        p.flags.STRAFE_RIGHT or p.flags.STRAFE_LEFT or 
+        p.flags.TURNING_LEFT or p.flags.TURNING_RIGHT or 
+        TARGETING_OCULUS_QUEST 
+        then 
+        me.UPDATE_ME = true 
     else 
-        myPlayerState.UPDATE_ME = false 
+        me.UPDATE_ME = false 
     end 
     -- Update my state for the thread!
-    myPlayerState.pos.x = round(p.x, 3); myPlayerState.pos.y = round(p.y + p.h, 3); myPlayerState.pos.z = round(p.z, 3);
+    me.pos.x = round(p.x, 3); me.pos.y = 
+        round(p.y + p.h, 3); me.pos.z = round(p.z, 3);
     -- convert rotation to quaternion
-    myPlayerState.rot.m = -p.rot + math.pi/2; 
+    me.rot.m = -p.rot + math.pi/2; 
     -- Hands 
-    myPlayerState.rHandPos.x = round(p.x + rightHand.x, 3); 
-    myPlayerState.rHandPos.y = round(p.y + p.h + rightHand.y, 3);
-    myPlayerState.rHandPos.z = round(p.z + rightHand.z, 3);
-    myPlayerState.rHandRot.m = rightHand.an; myPlayerState.rHandRot.x = rightHand.ax;
-    myPlayerState.rHandRot.y = rightHand.ay; myPlayerState.rHandRot.z = rightHand.az;
+    me.rHandPos.x = round(p.x + rightHand.x, 3); 
+    me.rHandPos.y = round(p.y + p.h + rightHand.y, 3);
+    me.rHandPos.z = round(p.z + rightHand.z, 3);
+    me.rHandRot.m = rightHand.an; me.rHandRot.x = rightHand.ax;
+    me.rHandRot.y = rightHand.ay; me.rHandRot.z = rightHand.az;
     
-    myPlayerState.lHandPos.x = round(p.x + leftHand.x, 3); 
-    myPlayerState.lHandPos.y = round(p.y + p.h + leftHand.y, 3);
-    myPlayerState.lHandPos.z = round(p.z + leftHand.z, 3);
-    myPlayerState.lHandRot.m = leftHand.an; myPlayerState.lHandRot.x = leftHand.ax;
-    myPlayerState.lHandRot.y = leftHand.ay; myPlayerState.lHandRot.z = leftHand.az;
+    me.lHandPos.x = round(p.x + leftHand.x, 3); 
+    me.lHandPos.y = round(p.y + p.h + leftHand.y, 3);
+    me.lHandPos.z = round(p.z + leftHand.z, 3);
+    me.lHandRot.m = leftHand.an; me.lHandRot.x = leftHand.ax;
+    me.lHandRot.y = leftHand.ay; me.lHandRot.z = leftHand.az;
     
     -- [[ END PLAYER UPDATE ]]
 
@@ -319,6 +332,9 @@ if not TARGETING_OCULUS_QUEST then
 end
 --
 
+local worldGUI = {}
+local HmdGUI = {}
+
 function lovr.draw()
     -- DAY
     --lg.clear(1/3, 1/3, 1, 1)
@@ -336,8 +352,10 @@ function lovr.draw()
         hand:draw(0, 2, -3)
     else 
         -- p.rot is visual world rotation (p.rot, 0, 1, 0)
-        hand:draw(rightHand.x, rightHand.y, rightHand.z, 0.1, rightHand.an, rightHand.ax, rightHand.ay, rightHand.az)
-        hand:draw(leftHand.x, leftHand.y, leftHand.z, 0.1, leftHand.an, leftHand.ax, leftHand.ay, leftHand.az)
+        hand:draw(rightHand.x, rightHand.y, rightHand.z, 0.1, 
+            rightHand.an, rightHand.ax, rightHand.ay, rightHand.az)
+        hand:draw(leftHand.x, leftHand.y, leftHand.z, 0.1, 
+            leftHand.an, leftHand.ax, leftHand.ay, leftHand.az)
     end
 
     lovr.graphics.transform(view)
@@ -364,16 +382,23 @@ function lovr.draw()
             if (v.pos) then 
                 lg.setShader(shader)
                 if tonumber(k) ~= clientId then 
+                    -- Draw body
                     shader:send('curTex', texChain) -- TODO 
                     local np = currentState.players[k].pos 
-                    local newv = lovr.math.newVec3(v.pos.x, v.pos.y, v.pos.z):lerp(lovr.math.newVec3(np.x, np.y, np.z), tickPercent*5)
+                    -- (Smooth!)
+                    local newv = lovr.math.newVec3(v.pos.x, v.pos.y, v.pos.z)
+                        :lerp(lovr.math.newVec3(np.x, np.y, np.z), tickPercent*5)
                     p_body:draw(newv.x, newv.y - 0.25, newv.z, 0.33, v.rot.m)
+                    -- Draw head
                     shader:send('curTex', texFace1) -- TODO
                     p_head:draw(newv.x, newv.y, newv.z, 0.25, v.rot.m)
-                    hand:draw(v.rHandPos.x, v.rHandPos.y, v.rHandPos.z, 0.2, v.rHandRot.m, v.rHandRot.x, v.rHandRot.y, v.rHandRot.z)
-                    hand:draw(v.lHandPos.x, v.lHandPos.y, v.lHandPos.z, 0.2, v.lHandRot.m, v.lHandRot.x, v.lHandRot.y, v.lHandRot.z)
+                    
+                    hand:draw(v.rHandPos.x, v.rHandPos.y, v.rHandPos.z, 0.2, 
+                        v.rHandRot.m, v.rHandRot.x, v.rHandRot.y, v.rHandRot.z)
+                    hand:draw(v.lHandPos.x, v.lHandPos.y, v.lHandPos.z, 0.2, 
+                        v.lHandRot.m, v.lHandRot.x, v.lHandRot.y, v.lHandRot.z)
                 end
-                lg.setShader()
+                lg.setShader() -- clientId
                 lg.print(k, v.pos.x, v.pos.y + 1, v.pos.z, 0.6, v.rot.m)
             end
         end
@@ -386,12 +411,21 @@ function lovr.draw()
     lg.setShader()
 
     -- Draw gui
+    worldGUI:draw()
+    HmdGUI:draw()
+    
+end
+
+function worldGUI:draw()
     --[[ World-rotation agnostic GUI]]
     local guipos = { x = p.x + 2.0 * math.cos(p.rot), 
-        z = p.z + 2.0 * math.sin(p.rot), 
-        y = p.h }
+    z = p.z + 2.0 * math.sin(p.rot), 
+    y = p.h }
     lg.print('GUI test', 
-        guipos.x, guipos.y, guipos.z, 0.2, -p.rot-math.pi/2)
+    guipos.x, guipos.y, guipos.z, 0.2, -p.rot-math.pi/2)
+end
+
+function HmdGUI:draw()
     --[[ HMD-oriented GUI]]
     if TARGETING_OCULUS_QUEST then 
         local gpos2 = { x = p.x + 2.0 * math.cos(hr + p.rot - 0.2),
@@ -408,7 +442,6 @@ function lovr.draw()
             gpos2.x, gpos2.y, gpos2.z, 0.1, -(p.rot)-math.pi/2, 
             0, 1, 0, 0, 'left')
     end
-    
 end
 
 function lovr.quit()
