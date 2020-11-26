@@ -47,7 +47,8 @@ gameTime = 0.0
 serverTick = (1/40) -- 25ms, to target 50ms updates
 currentState = {
     players = {}
-} -- world state .data
+} ; lastState = { players = {} }
+-- world state .data
 local myPlayerState = {
     pos = { x = 0.0, y = 0.0, z = 0.0 },
     rot = { x = 0.0, y = 0.0, z = 0.0, m = 0.0 },
@@ -74,30 +75,6 @@ local headsetState = {
     an = 0, ax = 0, ay = 1, az = 0
 }
 
--- GUI code
---[[
-local GUI = { canvas = nil }
-GUI.render = function ()
-    lg.setShader()
-    lg.setFont()
-    --local guipos = { x = p.x + 2.0 * math.cos(p.rot - 0.33), 
-    --    z = p.z + 2.0 * math.sin(p.rot - 0.33), 
-    --    y = p.y + p.h }
-    local guipos = {
-        x = 0, 
-        y = 2, 
-        z = -2
-    }
-    GUI.canvas:renderTo(function()
-        lg.clear(0, 0, 0, 0)
-        lg.print('GUI test\nHP: 10 / 10\nMP: 2 / 2\nLv: 1\nXP: 0 / 1000', 
-            guipos.x, guipos.y, guipos.z, 0.2)
-    end)
-    --lg.plane(lg.newMaterial(GUI.canvas:getTexture()), guipos.x, guipos.y, guipos.z, 2, 1, -p.rot-math.pi/2)
-    
-end
-]]
-
 local ori = {
     x = 0, y = 0, z = 0, an = 0, ax = 0, ay = 1, az = 0
 }
@@ -107,26 +84,7 @@ letters_drawables = {}
 
 function InitializeKBDrawables()
     local drawables = letters_drawables
-      --[[
-    table.insert(drawables, letters.Button:new{
-        position = lovr.math.newVec3(-0.3, 1.2, -1),
-        onPressed = function() 
-          letters.defaultKeyboard = letters.HoverKeyboard
-          drawables[2]:setSelected(false)
-        end,
-        label = "Hover",
-        isToggle = true
-      })
-      table.insert(drawables, letters.Button:new{
-        position = lovr.math.newVec3(0.3, 1.2, -1),
-        onPressed = function() 
-          letters.defaultKeyboard = letters.ButterflyKeyboard
-          drawables[1]:setSelected(false)
-        end,
-        label = "Butterfly",
-        isToggle = true
-      })
-      --]]
+      
       font = lovr.graphics.newFont(16)
       table.insert(drawables, letters.TextField:new{
         position = lovr.math.newVec3(-3, p.y+p.h+2, -5),
@@ -140,7 +98,6 @@ function InitializeKBDrawables()
         placeholder = "PASSWORD"
       })
       drawables[1]:deselect()
-    
       
       for i, hand in ipairs(letters.hands) do
         table.insert(drawables, hand)
@@ -210,10 +167,14 @@ function GetPoseTable(pose)
     return o
 end
 
+local tempv = 0
+tickPercent = 0
+
 function lovr.update(dT)
     deltaTime = dT
     gameTime = gameTime + dT
-
+    tickPercent = tickPercent + dT 
+    
     headsetState = GetPoseTable('head')
     p.h = headsetState.y
 
@@ -224,9 +185,15 @@ function lovr.update(dT)
             clientId = WaitForNext(toMain)
             print(clientId)
         elseif cmsg == 'GivingWorldState' then 
+            lastState = currentState 
             currentState = json.decode(WaitForNext(toMain))
+            tickPercent = 0
+            tempv = tempv + 1
+            --print('state' .. tempv)
         end
     end
+
+    -- [[ PLAYER UPDATE ]]
 
     if TARGETING_OCULUS_QUEST then 
         -- keyboard
@@ -320,6 +287,8 @@ function lovr.update(dT)
     myPlayerState.lHandRot.m = leftHand.an; myPlayerState.lHandRot.x = leftHand.ax;
     myPlayerState.lHandRot.y = leftHand.ay; myPlayerState.lHandRot.z = leftHand.az;
     
+    -- [[ END PLAYER UPDATE ]]
+
     -- VIEW
     camera = lovr.math.newMat4():lookAt(
         vec3(p.x, p.y, p.z),
@@ -388,15 +357,19 @@ function lovr.draw()
 	lovr.graphics.setFont(satFont)
     lovr.graphics.print('ima fk uup\npoing!', 2, 3, -6)
 
-    for k,v in pairs(currentState.players) do 
+    --[[ DRAW CURRENTSTATE ]]
+    local cs = lastState
+    for k,v in pairs(cs.players) do 
         if k then 
             if (v.pos) then 
                 lg.setShader(shader)
                 if tonumber(k) ~= clientId then 
                     shader:send('curTex', texChain) -- TODO 
-                    p_body:draw(v.pos.x, v.pos.y - 0.25, v.pos.z, 0.33, v.rot.m)
+                    local np = currentState.players[k].pos 
+                    local newv = lovr.math.newVec3(v.pos.x, v.pos.y, v.pos.z):lerp(lovr.math.newVec3(np.x, np.y, np.z), tickPercent*5)
+                    p_body:draw(newv.x, newv.y - 0.25, newv.z, 0.33, v.rot.m)
                     shader:send('curTex', texFace1) -- TODO
-                    p_head:draw(v.pos.x, v.pos.y, v.pos.z, 0.25, v.rot.m)
+                    p_head:draw(newv.x, newv.y, newv.z, 0.25, v.rot.m)
                     hand:draw(v.rHandPos.x, v.rHandPos.y, v.rHandPos.z, 0.2, v.rHandRot.m, v.rHandRot.x, v.rHandRot.y, v.rHandRot.z)
                     hand:draw(v.lHandPos.x, v.lHandPos.y, v.lHandPos.z, 0.2, v.lHandRot.m, v.lHandRot.x, v.lHandRot.y, v.lHandRot.z)
                 end
@@ -406,6 +379,7 @@ function lovr.draw()
         end
     end
 
+    -- DRAW GOBBO
     lg.setShader(shader)
     shader:send('curTex', texGob_a)
     gob_a:draw(0, 0, -5)
